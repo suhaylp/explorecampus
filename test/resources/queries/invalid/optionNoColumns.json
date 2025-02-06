@@ -1,0 +1,9 @@
+{
+	"title": "Option no columns",
+	"input": {
+		"WHERE": {},
+		"OPTIONS": {}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

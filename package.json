@@ -16,7 +16,8 @@
 		"fs-extra": "11.1.0",
 		"http-status-codes": "2.3.0",
 		"jszip": "3.10.1",
-		"parse5": "7.1.2"
+		"parse5": "7.1.2",
+		"yarn": "^1.22.22"
 	},
 	"devDependencies": {
 		"@tsconfig/node23": "23.0.0",

@@ -1,0 +1,18 @@
+{
+	"title": "Referenced dataset not added",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"fake_avg": 97
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"fake_dept"
+			],
+			"ORDER": "sections_avg"
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}
