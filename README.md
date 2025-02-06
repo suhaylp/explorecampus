@@ -30,9 +30,9 @@ In the project folder:
 1. `yarn test` to run the test suite.
     - To run with coverage, run `yarn cover`
 
-1. `yarn prettier:fix` to format your project code.
+   1. `yarn prettier:fix` to format your project code.
 
-1. `yarn lint:check` to see lint errors in your project code. You may be able to fix some of them using the `yarn lint:fix` command.
+   1. `yarn lint:check` to see lint errors in your project code. You may be able to fix some of them using the `yarn lint:fix` command.
 
 
 If you are curious, some of these commands are actually shortcuts defined in [package.json -> scripts](./package.json).

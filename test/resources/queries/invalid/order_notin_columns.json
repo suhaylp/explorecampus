@@ -1,16 +1,17 @@
 {
-	"title": "Referenced dataset not added",
+	"title": "order_notin_columns",
 	"input": {
 		"WHERE": {
 			"GT": {
-				"fake_avg": 97
+				"sections_avg": 97
 			}
 		},
 		"OPTIONS": {
 			"COLUMNS": [
-				"fake_dept"
+				"sections_dept",
+				"sections_avg"
 			],
-			"ORDER": "sections_avg"
+			"ORDER": ""
 		}
 	},
 	"errorExpected": true,

@@ -1,9 +1,9 @@
 {
-	"title": "No columns",
+	"title": "not added",
 	"input": {
 		"WHERE": {},
 		"OPTIONS": {
-			"COLUMNS": []
+			"COLUMNS": ["nothing_uuid"]
 		}
 	},
 	"errorExpected": true,

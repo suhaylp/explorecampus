@@ -1,6 +1,7 @@
 {
-	"title": "Query missing WHERE",
+	"title": "options_missing_columns",
 	"input": {
+		"WHERE": {},
 		"OPTIONS": {}
 	},
 	"errorExpected": true,

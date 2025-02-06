@@ -1,0 +1,11 @@
+{
+  "title": "many columns datasets",
+  "input": {
+    "WHERE": {},
+    "OPTIONS": {
+      "COLUMNS": ["sections_uuid", "single_uuid"]
+    }
+  },
+  "errorExpected": true,
+  "expected": "InsightError"
+}

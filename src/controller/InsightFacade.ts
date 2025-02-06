@@ -10,7 +10,7 @@ import { StoredDataset } from "./StoredDataset"; // Our StoredDataset class
  * Method documentation is in IInsightFacade
  *
  */
-const persistFilePath: string = path.join("project_team299", "data", "storedDatasets.json");
+const persistFilePath: string = path.join(__dirname, "..", "..", "data", "storedDatasets.json");
 async function sectionsParser(sections: Section[], files: Promise<string>[]): Promise<void> {
 	const defaultYear = 1900;
 

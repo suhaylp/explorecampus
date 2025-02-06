@@ -1,10 +1,10 @@
 {
-	"title": "No output",
+	"title": "non_object",
 	"input": {
 		"WHERE": {
-			"GT": {
-				"sections_avg": 100
-			}
+			"EQ": [
+				"sections_id"
+			]
 		},
 		"OPTIONS": {
 			"COLUMNS": [
@@ -14,7 +14,6 @@
 			"ORDER": "sections_avg"
 		}
 	},
-	"errorExpected": false,
-	"expected": []
-
+	"errorExpected": true,
+	"expected": "InsightError"
 }
