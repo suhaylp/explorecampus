@@ -9,6 +9,7 @@
 		"node": ">= 23 < 24"
 	},
 	"dependencies": {
+		"23": "^0.0.0",
 		"@ubccpsc310/project-support": "^4.0.0",
 		"cors": "2.8.5",
 		"decimal.js": "10.4.3",
