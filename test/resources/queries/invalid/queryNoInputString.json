@@ -1,0 +1,6 @@
+{
+	"title": "Query no input string",
+	"input": "",
+	"errorExpected": true,
+	"expected": "InsightError"
+}
