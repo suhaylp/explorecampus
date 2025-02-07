@@ -540,6 +540,7 @@ describe("InsightFacade", function () {
 
 		it("should load the dataset from disk in a new instance of InsightFacade", async function () {
 			const newFacade = new InsightFacade();
+			await new Promise((resolve) => setTimeout(resolve, 100));
 			const datasets = await newFacade.listDatasets();
 			const found = datasets.find((ds) => ds.id === datasetId);
 			expect(found).to.not.be.undefined;
