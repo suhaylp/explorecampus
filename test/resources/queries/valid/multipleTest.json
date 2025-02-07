@@ -1,0 +1,250 @@
+{
+	"title": "Multiple test",
+	"input": {
+		"WHERE": {
+			"AND": [
+				{
+					"IS": {
+						"sections_id": "*39"
+					}
+				},
+				{
+					"NOT": {
+						"IS": {
+							"sections_dept": "AST*"
+						}
+					}
+				},
+				{
+					"OR": [
+						{
+							"LT": {
+								"sections_avg": 85
+							}
+						},
+						{
+							"GT": {
+								"sections_avg": 80
+							}
+						}
+					]
+				},
+				{
+					"IS": {
+						"sections_id": "*2*"
+					}
+				}
+			]
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_uuid",
+				"sections_id",
+				"sections_title",
+				"sections_instructor",
+				"sections_dept",
+				"sections_year",
+				"sections_avg",
+				"sections_pass",
+				"sections_fail",
+				"sections_audit"
+			],
+			"ORDER": "sections_avg"
+		}
+	},
+	"errorExpected": false,
+	"expected": [
+		{
+			"sections_uuid": "89550",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "",
+			"sections_dept": "frst",
+			"sections_year": 1900,
+			"sections_avg": 67.75,
+			"sections_pass": 21,
+			"sections_fail": 3,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "89549",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "lyons, charles",
+			"sections_dept": "frst",
+			"sections_year": 2007,
+			"sections_avg": 67.75,
+			"sections_pass": 21,
+			"sections_fail": 3,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "7333",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "",
+			"sections_dept": "frst",
+			"sections_year": 1900,
+			"sections_avg": 71.79,
+			"sections_pass": 33,
+			"sections_fail": 1,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "7332",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "lyons, charles",
+			"sections_dept": "frst",
+			"sections_year": 2012,
+			"sections_avg": 71.79,
+			"sections_pass": 33,
+			"sections_fail": 1,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "59666",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "",
+			"sections_dept": "frst",
+			"sections_year": 1900,
+			"sections_avg": 73.44,
+			"sections_pass": 34,
+			"sections_fail": 0,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "59665",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "",
+			"sections_dept": "frst",
+			"sections_year": 2008,
+			"sections_avg": 73.44,
+			"sections_pass": 34,
+			"sections_fail": 0,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "97646",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "",
+			"sections_dept": "frst",
+			"sections_year": 1900,
+			"sections_avg": 73.84,
+			"sections_pass": 36,
+			"sections_fail": 1,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "97645",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "lyons, charles",
+			"sections_dept": "frst",
+			"sections_year": 2013,
+			"sections_avg": 73.84,
+			"sections_pass": 36,
+			"sections_fail": 1,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "21240",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "",
+			"sections_dept": "frst",
+			"sections_year": 1900,
+			"sections_avg": 74.11,
+			"sections_pass": 27,
+			"sections_fail": 1,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "21239",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "lyons, charles",
+			"sections_dept": "frst",
+			"sections_year": 2011,
+			"sections_avg": 74.11,
+			"sections_pass": 27,
+			"sections_fail": 1,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "86566",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "",
+			"sections_dept": "frst",
+			"sections_year": 1900,
+			"sections_avg": 74.49,
+			"sections_pass": 51,
+			"sections_fail": 0,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "86565",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "lyons, charles",
+			"sections_dept": "frst",
+			"sections_year": 2014,
+			"sections_avg": 74.49,
+			"sections_pass": 51,
+			"sections_fail": 0,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "34884",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "",
+			"sections_dept": "frst",
+			"sections_year": 1900,
+			"sections_avg": 76.8,
+			"sections_pass": 15,
+			"sections_fail": 0,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "34883",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "lyons, charles",
+			"sections_dept": "frst",
+			"sections_year": 2010,
+			"sections_avg": 76.8,
+			"sections_pass": 15,
+			"sections_fail": 0,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "54915",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "",
+			"sections_dept": "frst",
+			"sections_year": 1900,
+			"sections_avg": 78.39,
+			"sections_pass": 56,
+			"sections_fail": 0,
+			"sections_audit": 0
+		},
+		{
+			"sections_uuid": "54914",
+			"sections_id": "239",
+			"sections_title": "tr std lev meas",
+			"sections_instructor": "lemay, valerie",
+			"sections_dept": "frst",
+			"sections_year": 2015,
+			"sections_avg": 78.39,
+			"sections_pass": 56,
+			"sections_fail": 0,
+			"sections_audit": 0
+		}
+	]
+}
