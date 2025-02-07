@@ -11,26 +11,26 @@ export class Section {
 	public audit: number;
 
 	constructor(
-		uuid: string,
-		id: string,
-		title: string,
-		instructor: string,
-		dept: string,
-		year: number,
-		avg: number,
-		pass: number,
-		fail: number,
-		audit: number
+		uuid: any,
+		id: any,
+		title: any,
+		instructor: any,
+		dept: any,
+		year: any,
+		avg: any,
+		pass: any,
+		fail: any,
+		audit: any
 	) {
-		this.uuid = uuid;
-		this.id = id;
-		this.title = title;
-		this.instructor = instructor;
-		this.dept = dept;
-		this.year = year;
-		this.avg = avg;
-		this.pass = pass;
-		this.fail = fail;
-		this.audit = audit;
+		this.uuid = String(uuid);
+		this.id = String(id);
+		this.title = String(title);
+		this.instructor = String(instructor);
+		this.dept = String(dept);
+		this.year = Number(year);
+		this.avg = Number(avg);
+		this.pass = Number(pass);
+		this.fail = Number(fail);
+		this.audit = Number(audit);
 	}
 }

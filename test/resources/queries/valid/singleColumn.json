@@ -1,0 +1,166 @@
+{
+	"title": "Single column",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_avg": 97
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_avg"
+			],
+			"ORDER": "sections_avg"
+		}
+	},
+	"errorExpected": false,
+	"expected": [
+		{
+			"sections_avg": 97.09
+		},
+		{
+			"sections_avg": 97.09
+		},
+		{
+			"sections_avg": 97.09
+		},
+		{
+			"sections_avg": 97.09
+		},
+		{
+			"sections_avg": 97.25
+		},
+		{
+			"sections_avg": 97.25
+		},
+		{
+			"sections_avg": 97.29
+		},
+		{
+			"sections_avg": 97.29
+		},
+		{
+			"sections_avg": 97.33
+		},
+		{
+			"sections_avg": 97.33
+		},
+		{
+			"sections_avg": 97.41
+		},
+		{
+			"sections_avg": 97.41
+		},
+		{
+			"sections_avg": 97.47
+		},
+		{
+			"sections_avg": 97.47
+		},
+		{
+			"sections_avg": 97.48
+		},
+		{
+			"sections_avg": 97.48
+		},
+		{
+			"sections_avg": 97.5
+		},
+		{
+			"sections_avg": 97.53
+		},
+		{
+			"sections_avg": 97.53
+		},
+		{
+			"sections_avg": 97.67
+		},
+		{
+			"sections_avg": 97.69
+		},
+		{
+			"sections_avg": 97.78
+		},
+		{
+			"sections_avg": 98
+		},
+		{
+			"sections_avg": 98
+		},
+		{
+			"sections_avg": 98.08
+		},
+		{
+			"sections_avg": 98.21
+		},
+		{
+			"sections_avg": 98.21
+		},
+		{
+			"sections_avg": 98.36
+		},
+		{
+			"sections_avg": 98.45
+		},
+		{
+			"sections_avg": 98.45
+		},
+		{
+			"sections_avg": 98.5
+		},
+		{
+			"sections_avg": 98.5
+		},
+		{
+			"sections_avg": 98.58
+		},
+		{
+			"sections_avg": 98.58
+		},
+		{
+			"sections_avg": 98.58
+		},
+		{
+			"sections_avg": 98.58
+		},
+		{
+			"sections_avg": 98.7
+		},
+		{
+			"sections_avg": 98.71
+		},
+		{
+			"sections_avg": 98.71
+		},
+		{
+			"sections_avg": 98.75
+		},
+		{
+			"sections_avg": 98.75
+		},
+		{
+			"sections_avg": 98.76
+		},
+		{
+			"sections_avg": 98.76
+		},
+		{
+			"sections_avg": 98.8
+		},
+		{
+			"sections_avg": 98.98
+		},
+		{
+			"sections_avg": 98.98
+		},
+		{
+			"sections_avg": 99.19
+		},
+		{
+			"sections_avg": 99.78
+		},
+		{
+			"sections_avg": 99.78
+		}
+	]
+}
