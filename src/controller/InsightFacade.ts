@@ -12,7 +12,7 @@ import {
 import { QueryEngine } from "./QueryEngine";
 import { Section } from "./Section";
 
-export class InsightFacade implements IInsightFacade {
+export default class InsightFacade implements IInsightFacade {
 	private datasets: Map<string, { meta: InsightDataset; data: Section[] }>;
 	private datasetStoragePath: string;
 	private errorsList: string[];
