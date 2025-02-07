@@ -50,6 +50,7 @@ export default class InsightFacade implements IInsightFacade {
 		}
 	}
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
+		await this.initialized;
 		// Validate the dataset id and kind (throws an error if invalid or duplicate).
 		this.validateDatasetParam(id, kind);
 		// const defaultYear = 1900;
@@ -131,6 +132,7 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	public async removeDataset(id: string): Promise<string> {
+		await this.initialized;
 		if (!this.isValidId(id)) {
 			throw new InsightError("Invalid dataset ID");
 		}
@@ -146,10 +148,12 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	public async listDatasets(): Promise<InsightDataset[]> {
+		await this.initialized;
 		return Array.from(this.datasets.values()).map((ds) => ds.meta);
 	}
 
 	public async performQuery(query: unknown): Promise<InsightResult[]> {
+		await this.initialized;
 		return new Promise<InsightResult[]>((resolve, reject) => {
 			try {
 				// Check that the query is a non-null object.
