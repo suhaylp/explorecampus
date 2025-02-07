@@ -16,29 +16,39 @@ export class InsightFacade implements IInsightFacade {
 	private datasets: Map<string, { meta: InsightDataset; data: Section[] }>;
 	private datasetStoragePath: string;
 	private errorsList: string[];
-	// private MAX_SIZE = 5000;
+	private initialized: Promise<void>;
 
 	constructor() {
 		this.datasets = new Map();
 		this.datasetStoragePath = path.join(__dirname, "../../data");
 		this.errorsList = [];
-		fs.ensureDirSync(this.datasetStoragePath);
-		this.loadDatasetsFromDisk();
+		this.initialized = this.initialize();
 	}
 
-	private loadDatasetsFromDisk(): void {
-		const files = fs.readdirSync(this.datasetStoragePath);
-		for (const file of files) {
-			const filePath = path.join(this.datasetStoragePath, file);
-			try {
-				const data = fs.readJsonSync(filePath);
-				this.datasets.set(data.meta.id, data);
-			} catch (error) {
-				this.errorsList.push(`Failed to load dataset ` + error);
-			}
+	private async initialize(): Promise<void> {
+		await fs.ensureDir(this.datasetStoragePath);
+		await this.loadDatasetsFromDisk();
+	}
+
+	private async loadDatasetsFromDisk(): Promise<void> {
+		try {
+			const files = await fs.readdir(this.datasetStoragePath);
+
+			const datasetPromises = files.map(async (file) => {
+				const filePath = path.join(this.datasetStoragePath, file);
+				try {
+					const data = await fs.readJson(filePath);
+					this.datasets.set(data.meta.id, data);
+				} catch (error) {
+					this.errorsList.push(`Failed to load dataset: ${error}`);
+				}
+			});
+
+			await Promise.all(datasetPromises);
+		} catch (error) {
+			this.errorsList.push(`Failed to read dataset directory: ${error}`);
 		}
 	}
-
 	public async addDataset(id: string, content: string, kind: InsightDatasetKind): Promise<string[]> {
 		// Validate the dataset id and kind (throws an error if invalid or duplicate).
 		this.validateDatasetParam(id, kind);
