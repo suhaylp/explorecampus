@@ -1,0 +1,166 @@
+{
+	"title": "one_column",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_avg": 97
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_uuid"
+			],
+			"ORDER": "sections_uuid"
+		}
+	},
+	"errorExpected": false,
+	"expected": [
+		{
+			"sections_uuid": "10235"
+		},
+		{
+			"sections_uuid": "10236"
+		},
+		{
+			"sections_uuid": "15343"
+		},
+		{
+			"sections_uuid": "15344"
+		},
+		{
+			"sections_uuid": "26777"
+		},
+		{
+			"sections_uuid": "28943"
+		},
+		{
+			"sections_uuid": "29255"
+		},
+		{
+			"sections_uuid": "29256"
+		},
+		{
+			"sections_uuid": "32014"
+		},
+		{
+			"sections_uuid": "32015"
+		},
+		{
+			"sections_uuid": "3228"
+		},
+		{
+			"sections_uuid": "33779"
+		},
+		{
+			"sections_uuid": "33780"
+		},
+		{
+			"sections_uuid": "33781"
+		},
+		{
+			"sections_uuid": "35870"
+		},
+		{
+			"sections_uuid": "35871"
+		},
+		{
+			"sections_uuid": "44816"
+		},
+		{
+			"sections_uuid": "44817"
+		},
+		{
+			"sections_uuid": "46405"
+		},
+		{
+			"sections_uuid": "46412"
+		},
+		{
+			"sections_uuid": "49677"
+		},
+		{
+			"sections_uuid": "49678"
+		},
+		{
+			"sections_uuid": "50495"
+		},
+		{
+			"sections_uuid": "5373"
+		},
+		{
+			"sections_uuid": "5374"
+		},
+		{
+			"sections_uuid": "6320"
+		},
+		{
+			"sections_uuid": "65069"
+		},
+		{
+			"sections_uuid": "65070"
+		},
+		{
+			"sections_uuid": "73165"
+		},
+		{
+			"sections_uuid": "73166"
+		},
+		{
+			"sections_uuid": "73173"
+		},
+		{
+			"sections_uuid": "73174"
+		},
+		{
+			"sections_uuid": "73638"
+		},
+		{
+			"sections_uuid": "73639"
+		},
+		{
+			"sections_uuid": "73665"
+		},
+		{
+			"sections_uuid": "73666"
+		},
+		{
+			"sections_uuid": "76309"
+		},
+		{
+			"sections_uuid": "76311"
+		},
+		{
+			"sections_uuid": "86962"
+		},
+		{
+			"sections_uuid": "86963"
+		},
+		{
+			"sections_uuid": "86966"
+		},
+		{
+			"sections_uuid": "87779"
+		},
+		{
+			"sections_uuid": "87780"
+		},
+		{
+			"sections_uuid": "88151"
+		},
+		{
+			"sections_uuid": "88152"
+		},
+		{
+			"sections_uuid": "96250"
+		},
+		{
+			"sections_uuid": "96251"
+		},
+		{
+			"sections_uuid": "96261"
+		},
+		{
+			"sections_uuid": "96262"
+		}
+	]
+}

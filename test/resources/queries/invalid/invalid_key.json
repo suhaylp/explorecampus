@@ -1,15 +1,15 @@
 {
-	"title": "More than one dataset OPTIONS",
+	"title": "invalid_key",
 	"input": {
 		"WHERE": {
-			"GT": {
-				"sections_avg": 97
+			"LT": {
+				"sections_dept": "c*sc"
 			}
 		},
 		"OPTIONS": {
 			"COLUMNS": [
 				"sections_dept",
-				"oneCourse_dept"
+				"sections_avg"
 			],
 			"ORDER": "sections_avg"
 		}

@@ -1,8 +1,10 @@
 {
-	"title": "Option no columns",
+	"title": "columns_empty",
 	"input": {
 		"WHERE": {},
-		"OPTIONS": {}
+		"OPTIONS": {
+			"COLUMNS": []
+		}
 	},
 	"errorExpected": true,
 	"expected": "InsightError"

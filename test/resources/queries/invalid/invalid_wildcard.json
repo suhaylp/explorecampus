@@ -1,12 +1,10 @@
 {
-	"title": "Wildcard middle",
-	"input": {
+    "title": "invalid wildcard",
+    "input": {
 		"WHERE": {
-
 			"IS": {
-				"sections_dept": "as*r"
+				"sections_dept": "c*sc"
 			}
-
 		},
 		"OPTIONS": {
 			"COLUMNS": [
@@ -16,7 +14,6 @@
 			"ORDER": "sections_avg"
 		}
 	},
-	"errorExpected": true,
-	"expected": "InsightError"
-}
-
+    "errorExpected": true,
+    "expected": "InsightError"
+  }
