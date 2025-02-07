@@ -173,7 +173,7 @@ describe("InsightFacade", function () {
 
 		it("should return an empty array if no datasets are added 15", async function () {
 			const datasets = await facade.listDatasets();
-			expect(datasets).to.deep.equal([]);
+			expect(datasets).to.have.deep.members([]);
 		});
 	});
 
@@ -223,7 +223,7 @@ describe("InsightFacade", function () {
 			// to determine what to put here :)
 			// no error, no expectation, return result
 			// change this?
-			expect(result).to.deep.equal(expected);
+			expect(result).to.have.deep.members(expected);
 			return; // optional?
 		}
 
