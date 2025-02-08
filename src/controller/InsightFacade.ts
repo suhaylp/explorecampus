@@ -156,36 +156,32 @@ export default class InsightFacade implements IInsightFacade {
 		await this.initialized;
 		return new Promise<InsightResult[]>((resolve, reject) => {
 			try {
-				// Check that the query is a non-null object.
 				if (typeof query !== "object" || query === null) {
 					throw new InsightError("Query must be a non-null object");
 				}
 				const q: any = query;
-
-				// Check that OPTIONS.COLUMNS exists and is a non-empty array.
 				if (!q.OPTIONS || !Array.isArray(q.OPTIONS.COLUMNS) || q.OPTIONS.COLUMNS.length === 0) {
 					throw new InsightError("OPTIONS.COLUMNS is missing or empty");
 				}
 
 				// Extract dataset id from the first column.
 				const firstColumn: string = q.OPTIONS.COLUMNS[0];
-				// Expecting keys of the form "<id>_<field>"
 				const parts = firstColumn.split("_");
 				if (parts.length !== 2) {
 					throw new InsightError(`Invalid column format in OPTIONS.COLUMNS: ${firstColumn}`);
 				}
 				const datasetId = parts[0];
 
-				// Ensure that the dataset exists in our in-memory collection.
+				// New check: Reject queries for datasets with CR or LF in their id.
+				if (/[\r\n]/.test(datasetId)) {
+					throw new InsightError("Dataset id contains newline or carriage return characters, query rejected.");
+				}
+
 				if (!this.datasets.has(datasetId)) {
 					throw new InsightError(`Dataset ${datasetId} not found`);
 				}
 				const dataset = this.datasets.get(datasetId)!;
-
-				// Transform each Section record into a plain object with keys prefixed by datasetId.
 				const transformedRecords = this.transformDataset(datasetId, dataset.data);
-
-				// Delegate query validation and execution to the QueryEngine using the transformed records.
 				const results = QueryEngine.runQuery(query, transformedRecords);
 
 				resolve(results);

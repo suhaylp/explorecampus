@@ -13,6 +13,7 @@ import { expect, use } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import fs from "fs-extra";
 import path from "path";
+import JSZip from "jszip";
 
 use(chaiAsPromised);
 
@@ -43,6 +44,26 @@ describe("InsightFacade", function () {
 			await clearDisk();
 
 			facade = new InsightFacade();
+		});
+
+		it("should reject with a new line dataset id 0", async function () {
+			// Read the "Free Mutant Walkthrough" in the spec for tips on how to get started!
+			try {
+				await facade.addDataset("\n", sections, InsightDatasetKind.Sections);
+				expect.fail("Should have thrown!");
+			} catch (err) {
+				expect(err).to.be.instanceof(InsightError);
+			}
+		});
+
+		it("should reject with a /r dataset id 0.5", async function () {
+			// Read the "Free Mutant Walkthrough" in the spec for tips on how to get started!
+			try {
+				await facade.addDataset("\r", sections, InsightDatasetKind.Sections);
+				expect.fail("Should have thrown!");
+			} catch (err) {
+				expect(err).to.be.instanceof(InsightError);
+			}
 		});
 
 		it("should accept valid course 1", async function () {
@@ -544,6 +565,100 @@ describe("InsightFacade", function () {
 			const datasets = await newFacade.listDatasets();
 			const found = datasets.find((ds) => ds.id === datasetId);
 			expect(found).to.not.be.undefined;
+		});
+	});
+	// Helper to create a dummy ZIP (as a base64 string)
+	// The ZIP contains a folder "courses/" and one JSON file with minimal valid content.
+	async function createDummyZip(): Promise<string> {
+		const zip = new JSZip();
+		const coursesFolder = zip.folder("courses");
+		if (!coursesFolder) {
+			throw new Error("Failed to create courses folder in zip");
+		}
+		// Dummy dataset data – adjust the keys to match what your implementation expects.
+		const dummyData = {
+			result: [
+				{
+					id: "123",
+					Course: "CPSC 310",
+					Title: "Software Engineering",
+					Professor: "Dr. Smith",
+					Subject: "CPSC",
+					Year: 2020,
+					Avg: 85,
+					Pass: 100,
+					Fail: 0,
+					Audit: 0,
+					Section: "1",
+				},
+			],
+		};
+		coursesFolder.file("course1.json", JSON.stringify(dummyData));
+		return zip.generateAsync({ type: "base64" });
+	}
+
+	describe("C0 - Handling of Newline/Carriage Return in Dataset IDs", () => {
+		let validDataset: string;
+
+		before(async () => {
+			validDataset = await createDummyZip();
+		});
+
+		// This test adds a dataset whose id contains newline/carriage-return characters.
+		// The spec indicates that while addDataset() may allow these, they are not queryable.
+		it("should add a dataset with newline/CR characters in its id but fail to query it", async () => {
+			facade = new InsightFacade();
+			// Use an id with newline and carriage return characters.
+			const i = "test\r\nid";
+
+			// Add the dataset – expected to succeed.
+			await expect(facade.addDataset(i, validDataset, InsightDatasetKind.Sections)).to.eventually.be.an("array");
+
+			// Verify that listDatasets includes the dataset.
+			const datasets = await facade.listDatasets();
+			expect(datasets).to.satisfy((ds: any[]) => ds.some((d) => d.id === i));
+
+			// Construct a query referencing the dataset id exactly (including newline).
+			// According to the discussion, such datasets are unqueryable.
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					// The transformation keys will be `${id}_field`
+					COLUMNS: [`${i}_dept`, `${i}_avg`],
+					ORDER: `${i}_avg`,
+				},
+			};
+
+			// Expect the query to be rejected with an InsightError.
+			await expect(facade.performQuery(query)).to.be.rejectedWith(InsightError);
+		});
+	});
+
+	describe("Invalid Query String Handling", () => {
+		let validDataset: string;
+
+		before(async () => {
+			validDataset = await createDummyZip();
+		});
+
+		// This test verifies that an invalid query (e.g. one with an improperly formatted column)
+		// is rejected with an InsightError.
+		it("should throw an InsightError for an invalid query string", async () => {
+			// Add a dataset with a normal id.
+			await facade.addDataset("test", validDataset, InsightDatasetKind.Sections);
+
+			// Create an invalid query:
+			// For example, the column does not follow the expected "<id>_<field>" format.
+			const invalidQuery = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["invalidField"], // Does not have the proper "test_field" format.
+					ORDER: "invalidField",
+				},
+			};
+
+			// Expect an InsightError to be thrown.
+			await expect(facade.performQuery(invalidQuery)).to.be.rejectedWith(InsightError);
 		});
 	});
 });
