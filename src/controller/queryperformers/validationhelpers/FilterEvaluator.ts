@@ -1,4 +1,4 @@
-import { InsightError } from "./IInsightFacade";
+import { InsightError } from "../../IInsightFacade";
 
 export class FilterEvaluator {
 	public static evaluateFilter(filter: any, record: any): boolean {

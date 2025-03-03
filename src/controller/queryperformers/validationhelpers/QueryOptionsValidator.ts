@@ -1,4 +1,4 @@
-import { InsightError } from "./IInsightFacade";
+import { InsightError } from "../../IInsightFacade";
 import { QueryColumnsValidator } from "./QueryColumnsValidator";
 import { QueryOrderValidator } from "./QueryOrderValidator";
 

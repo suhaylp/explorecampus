@@ -1,7 +1,7 @@
-import { FilterEvaluator } from "./FilterEvaluator";
-import { ProjectionEvaluator } from "./ProjectionEvaluator";
-import { OrderEvaluator } from "./OrderEvaluator";
-import { ResultTooLargeError } from "./IInsightFacade";
+import { FilterEvaluator } from "./validationhelpers/FilterEvaluator";
+import { ProjectionEvaluator } from "../dataset/ProjectionEvaluator";
+import { OrderEvaluator } from "./validationhelpers/OrderEvaluator";
+import { ResultTooLargeError } from "../IInsightFacade";
 
 export class QueryExecutor {
 	private static MAX_SIZE: number = 5000;

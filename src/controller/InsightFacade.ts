@@ -9,8 +9,8 @@ import {
 	NotFoundError,
 	InsightResult,
 } from "./IInsightFacade";
-import { QueryEngine } from "./QueryEngine";
-import { Section } from "./Section";
+import { QueryEngine } from "./queryperformers/QueryEngine";
+import { Section } from "./dataset/Section";
 
 export default class InsightFacade implements IInsightFacade {
 	private datasets: Map<string, { meta: InsightDataset; data: Section[] }>;

@@ -1,6 +1,6 @@
-import { InsightError } from "./IInsightFacade";
-import { WhereValidator } from "./QueryWhereValidator";
-import { OptionsValidator } from "./QueryOptionsValidator";
+import { InsightError } from "../IInsightFacade";
+import { WhereValidator } from "./validationhelpers/QueryWhereValidator";
+import { OptionsValidator } from "./validationhelpers/QueryOptionsValidator";
 
 export class QueryValidator {
 	public static validateQuery(query: any): void {
