@@ -129,10 +129,20 @@ export function parseBuildingHtml(
 		// Attempt to extract room number: try cell with expected class first.
 		let roomNumber = "";
 		const roomNumberCells = findElements(row, "td", "views-field-field-room-number");
-		if (roomNumberCells.length > 0 && roomNumberCells[0].childNodes) {
-			roomNumber = roomNumberCells[0].childNodes.map((child: any) => child.value || "").join("").trim();
-		} else if (cells[0]?.childNodes) {
-			roomNumber = cells[0].childNodes.map((child: any) => child.value || "").join("").trim();
+
+		if (roomNumberCells.length > 0) {
+			const cell = roomNumberCells[0]; // First matching <td>
+
+			// Find <a> tags inside the <td>
+			const anchorTags = findElements(cell, "a");
+
+			if (anchorTags.length > 0) {
+				// Extract the text from the <a> tag
+				roomNumber = anchorTags[0].childNodes.map((child: any) => child.value || "").join("").trim();
+			} else {
+				// Fallback: extract text directly from <td>
+				roomNumber = cell.childNodes.map((child: any) => child.value || "").join("").trim();
+			}
 		}
 
 		// Extract capacity from expected cell.
