@@ -1,4 +1,4 @@
-import { InsightError } from "./IInsightFacade";
+import { InsightError } from "../../IInsightFacade";
 
 export class QueryColumnsValidator {
 	public static validateColumns(columns: any): void {

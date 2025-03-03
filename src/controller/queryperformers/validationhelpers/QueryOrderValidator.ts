@@ -1,4 +1,4 @@
-import { InsightError } from "./IInsightFacade";
+import { InsightError } from "../../IInsightFacade";
 
 export class QueryOrderValidator {
 	public static validateOrder(order: any, columns: string[]): void {

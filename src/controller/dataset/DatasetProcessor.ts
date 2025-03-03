@@ -1,4 +1,4 @@
-import { InsightDataset, InsightDatasetKind, InsightError, NotFoundError } from "./IInsightFacade";
+import { InsightDataset, InsightDatasetKind, InsightError, NotFoundError } from "../IInsightFacade";
 import fs from "fs-extra";
 import path from "path";
 import JSZip from "jszip";

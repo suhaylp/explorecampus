@@ -1,4 +1,4 @@
-import { InsightError } from "./IInsightFacade";
+import { InsightError } from "../../IInsightFacade";
 import { validateMKey, validateSKey } from "./QueryKeyValidator";
 
 export class WhereValidator {

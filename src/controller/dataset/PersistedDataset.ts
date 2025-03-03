@@ -1,4 +1,4 @@
-import { InsightDataset } from "./IInsightFacade";
+import { InsightDataset } from "../IInsightFacade";
 import { Section } from "./Section";
 
 export interface PersistedDataset {
