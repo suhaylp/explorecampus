@@ -1,22 +1,31 @@
 import { InsightError } from "../IInsightFacade";
 import { WhereValidator } from "./validationhelpers/QueryWhereValidator";
 import { OptionsValidator } from "./validationhelpers/QueryOptionsValidator";
+import { TransformationsValidator } from "./validationhelpers/QueryTransformationsValidator";
 
 export class QueryValidator {
+
+
 	public static validateQuery(query: any): void {
 		if (typeof query !== "object" || query === null || Array.isArray(query)) {
 			throw new InsightError("Query must be a non-null object");
 		}
 		const keys = Object.keys(query);
-		if (keys.length !== 2 || !keys.includes("WHERE") || !keys.includes("OPTIONS")) {
-			throw new InsightError("Query must contain exactly two keys: WHERE and OPTIONS");
+		const two = 2;
+		const three = 3;
+		if (!(keys.length === two || keys.length === three) || !keys.includes("WHERE") || !keys.includes("OPTIONS")) {
+			throw new InsightError("Query must contain WHERE and OPTIONS, and optionally TRANSFORMATIONS");
 		}
 
 		OptionsValidator.validateOptions(query.OPTIONS);
 		WhereValidator.validateWhere(query.WHERE);
 
-		const datasetIdFromOptions = QueryValidator.extractDatasetIdFromColumns(query.OPTIONS.COLUMNS);
+		if ("TRANSFORMATIONS" in query) {
+			TransformationsValidator.validateTransformations(query.TRANSFORMATIONS);
+			TransformationsValidator.validateColumns(query.OPTIONS.COLUMNS, query.TRANSFORMATIONS);
+		}
 
+		const datasetIdFromOptions = QueryValidator.extractDatasetIdFromColumns(query.OPTIONS.COLUMNS);
 		const datasetIdsFromWhere = QueryValidator.extractDatasetIdsFromWhere(query.WHERE);
 
 		if (
@@ -27,7 +36,9 @@ export class QueryValidator {
 		}
 	}
 
-	private static extractDatasetIdFromColumns(columns: string[]): string {
+
+
+private static extractDatasetIdFromColumns(columns: string[]): string {
 		const firstColumn = columns[0];
 		const parts = firstColumn.split("_");
 		if (parts.length !== 2) {
