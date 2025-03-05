@@ -12,14 +12,14 @@ export class QueryColumnsValidator {
 				throw new InsightError(`Column names must be strings, but received type ${typeof column}`);
 			}
 			const trimmedColumn = column.trim();
-			if (!trimmedColumn.includes("_")) {
-				throw new InsightError(`Invalid column name: ${column}`);
+			if (trimmedColumn.includes("_")) {
+				const [datasetId] = trimmedColumn.split("_");
+				datasetIds.add(datasetId);
 			}
-			const [datasetId] = trimmedColumn.split("_");
-			datasetIds.add(datasetId);
+
 		}
 
-		if (datasetIds.size !== 1) {
+		if (datasetIds.size > 1) {
 			throw new InsightError("Query must reference exactly one dataset");
 		}
 	}
