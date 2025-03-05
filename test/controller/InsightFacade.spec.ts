@@ -6,7 +6,7 @@ import {
 	NotFoundError,
 	ResultTooLargeError,
 } from "../../src/controller/IInsightFacade";
-import InsightFacade from "../../src/controller/InsightFacade";
+// import InsightFacade from "../../src/controller/InsightFacade";
 import { clearDisk, getContentFromArchives, loadTestQuery } from "../TestUtil";
 
 import { expect, use } from "chai";
@@ -14,6 +14,26 @@ import chaiAsPromised from "chai-as-promised";
 import fs from "fs-extra";
 import path from "path";
 import JSZip from "jszip";
+
+// import { expect } from "chai";
+import { parseBuildingHtml } from "../../src/controller/dataset/BuildingParserUtils";
+import { QueryValidator } from "../../src/controller/queryperformers/QueryValidator";
+// import { InsightDatasetKind, InsightError } from "../../src/controller/IInsightFacade";
+import { performTransformations } from "../../src/controller/queryperformers/executionhelpers/TransformationsProcessor";
+import { OrderEvaluator } from "../../src/controller/queryperformers/executionhelpers/OrderEvaluator";
+
+import { fetchGeolocation } from "../../src/controller/dataset/GeoHelper";
+
+import {
+	validateSField,
+	validateMField,
+	validateSKey,
+	validateMKey,
+} from "../../src/controller/queryperformers/validationhelpers/QueryKeyValidator";
+import InsightFacade from "../../src/controller/InsightFacade";
+import { parseIndexHtml } from "../../src/controller/dataset/IndexParserUtils";
+import { BuildingData } from "../../src/controller/dataset/IndexParserUtils";
+import { TransformationsValidator } from "../../src/controller/queryperformers/validationhelpers/QueryTransformationsValidator";
 
 use(chaiAsPromised);
 
@@ -37,6 +57,719 @@ describe("InsightFacade", function () {
 
 		// Just in case there is anything hanging around from a previous run of the test suite
 		await clearDisk();
+	});
+
+	describe("OrderEvaluator.order", () => {
+		const records = [
+			{ a: 3, b: "c" },
+			{ a: 1, b: "a" },
+			{ a: 2, b: "b" },
+		];
+
+		describe("when order is a string", () => {
+			it("should sort records in ascending order based on the provided key", () => {
+				const sorted = OrderEvaluator.order([...records], "a");
+				expect(sorted[0].a).to.equal(1);
+				expect(sorted[1].a).to.equal(2);
+				const three = 3;
+				expect(sorted[2].a).to.equal(three);
+			});
+
+			it("should throw an error when the ORDER string is empty", () => {
+				expect(() => OrderEvaluator.order([...records], "   ")).to.throw(InsightError, "ORDER string is empty");
+			});
+		});
+
+		describe("when order is an object", () => {
+			it("should throw an error if ORDER.dir is not 'UP' or 'DOWN'", () => {
+				expect(() => OrderEvaluator.order([...records], { dir: "SIDE", keys: ["a"] })).to.throw(
+					InsightError,
+					"ORDER.dir must be either 'UP' or 'DOWN'"
+				);
+			});
+
+			it("should throw an error if ORDER.keys is not a non-empty array", () => {
+				expect(() => OrderEvaluator.order([...records], { dir: "UP", keys: [] })).to.throw(
+					InsightError,
+					"ORDER.keys must be a non-empty array"
+				);
+			});
+
+			it("should sort records based on multiple keys in 'UP' direction", () => {
+				// Construct records where first key is equal and second key differs.
+				const multiRecords = [
+					{ a: 1, b: "z" },
+					{ a: 1, b: "a" },
+					{ a: 2, b: "b" },
+				];
+				const orderObj = { dir: "UP", keys: ["a", "b"] };
+				const sorted = OrderEvaluator.order([...multiRecords], orderObj);
+				// With a ascending sort, record with a:1 and b:"a" should come before a:1 and b:"z"
+				expect(sorted[0]).to.deep.equal({ a: 1, b: "a" });
+				expect(sorted[1]).to.deep.equal({ a: 1, b: "z" });
+				expect(sorted[2]).to.deep.equal({ a: 2, b: "b" });
+			});
+
+			it("should sort records based on multiple keys in 'DOWN' direction", () => {
+				// Construct records where first key is equal and second key differs.
+				const multiRecords = [
+					{ a: 1, b: "a" },
+					{ a: 1, b: "z" },
+					{ a: 2, b: "b" },
+				];
+				const orderObj = { dir: "DOWN", keys: ["a", "b"] };
+				const sorted = OrderEvaluator.order([...multiRecords], orderObj);
+				// With a descending sort, record with a:2 should be first, and then records with a:1 are sorted in reverse alphabetical order.
+				expect(sorted[0]).to.deep.equal({ a: 2, b: "b" });
+				expect(sorted[1]).to.deep.equal({ a: 1, b: "z" });
+				expect(sorted[2]).to.deep.equal({ a: 1, b: "a" });
+			});
+		});
+
+		describe("when order is of invalid type", () => {
+			it("should throw an error if order is not a string or an object", () => {
+				const num = 123;
+				expect(() => OrderEvaluator.order([...records], num as any)).to.throw(
+					InsightError,
+					"ORDER must be a string or a valid object"
+				);
+			});
+		});
+	});
+
+	describe("TransformationsValidator.validateTransformations", () => {
+		it("should throw error when transformations is not an object", () => {
+			expect(() => TransformationsValidator.validateTransformations("not an object")).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must be an object"
+			);
+			expect(() => TransformationsValidator.validateTransformations(null)).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must be an object"
+			);
+			const three = 3;
+			expect(() => TransformationsValidator.validateTransformations([1, 2, three])).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must be an object"
+			);
+		});
+
+		it("should throw error when GROUP or APPLY keys are missing", () => {
+			expect(() => TransformationsValidator.validateTransformations({})).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must contain GROUP and APPLY"
+			);
+			expect(() => TransformationsValidator.validateTransformations({ GROUP: ["dept"] })).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must contain GROUP and APPLY"
+			);
+			expect(() => TransformationsValidator.validateTransformations({ APPLY: [] })).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must contain GROUP and APPLY"
+			);
+		});
+
+		it("should throw error when GROUP is not a non-empty array", () => {
+			// GROUP is not an array.
+			expect(() => TransformationsValidator.validateTransformations({ GROUP: "not an array", APPLY: [] })).to.throw(
+				InsightError,
+				"GROUP must be a non-empty array"
+			);
+
+			// GROUP is an empty array.
+			expect(() => TransformationsValidator.validateTransformations({ GROUP: [], APPLY: [] })).to.throw(
+				InsightError,
+				"GROUP must be a non-empty array"
+			);
+		});
+
+		it("should throw error when APPLY is not an array", () => {
+			expect(() =>
+				TransformationsValidator.validateTransformations({ GROUP: ["dept"], APPLY: "not an array" })
+			).to.throw(InsightError, "APPLY must be an array");
+		});
+
+		describe("APPLY rule validations", () => {
+			const baseValid = {
+				GROUP: ["dept"],
+				APPLY: [],
+			};
+
+			it("should throw error if an APPLY rule is not an object", () => {
+				// APPLY contains a string instead of an object.
+				expect(() =>
+					TransformationsValidator.validateTransformations({
+						...baseValid,
+						APPLY: ["not an object"],
+					})
+				).to.throw(InsightError, "Each APPLY rule must be an object");
+			});
+
+			it("should throw error if an APPLY rule has not exactly one key", () => {
+				// APPLY rule with two keys.
+				expect(() =>
+					TransformationsValidator.validateTransformations({
+						...baseValid,
+						APPLY: [{ a: { MAX: "courses_avg" }, b: { MIN: "courses_avg" } }],
+					})
+				).to.throw(InsightError, "Each APPLY rule must have exactly one key");
+			});
+
+			it("should throw error if an APPLY rule's value is not an object", () => {
+				// APPLY rule with value that is not an object.
+				expect(() =>
+					TransformationsValidator.validateTransformations({
+						...baseValid,
+						APPLY: [{ ruleKey: "not an object" }],
+					})
+				).to.throw(InsightError, "Each APPLY rule's value must be an object");
+			});
+
+			it("should throw error if an APPLY rule's operator is invalid", () => {
+				// APPLY rule with an invalid operator.
+				expect(() =>
+					TransformationsValidator.validateTransformations({
+						...baseValid,
+						APPLY: [{ ruleKey: { INVALID: "courses_avg" } }],
+					})
+				).to.throw(InsightError, "Each APPLY rule must have exactly one operator: MAX, MIN, AVG, SUM, or COUNT");
+
+				// APPLY rule with more than one key in its operator object.
+				expect(() =>
+					TransformationsValidator.validateTransformations({
+						...baseValid,
+						APPLY: [{ ruleKey: { MAX: "courses_avg", MIN: "courses_avg" } }],
+					})
+				).to.throw(InsightError, "Each APPLY rule must have exactly one operator: MAX, MIN, AVG, SUM, or COUNT");
+			});
+
+			it("should pass for a valid transformations object", () => {
+				const validTransformations = {
+					GROUP: ["dept", "id"],
+					APPLY: [{ maxGrade: { MAX: "grade" } }, { countStudents: { COUNT: "students" } }],
+				};
+				expect(() => TransformationsValidator.validateTransformations(validTransformations)).to.not.throw();
+			});
+		});
+	});
+
+	describe("TransformationsValidator.validateColumns", () => {
+		it("should throw error if a column is not in GROUP or APPLY keys", () => {
+			const transformations = {
+				GROUP: ["dept", "id"],
+				APPLY: [{ maxGrade: { MAX: "grade" } }],
+			};
+			// "avg" is neither in GROUP nor defined in APPLY.
+			expect(() => TransformationsValidator.validateColumns(["dept", "avg"], transformations)).to.throw(
+				InsightError,
+				'Column "avg" must appear in GROUP or be defined in APPLY'
+			);
+		});
+
+		it("should not throw error if all columns are in GROUP or APPLY keys", () => {
+			const transformations = {
+				GROUP: ["dept", "id"],
+				APPLY: [{ maxGrade: { MAX: "grade" } }],
+			};
+			expect(() =>
+				TransformationsValidator.validateColumns(["dept", "id", "maxGrade"], transformations)
+			).to.not.throw();
+		});
+	});
+
+	describe("parseIndexHtml", () => {
+		it("should extract building data from valid index HTML", () => {
+			const sampleHtml = `
+      <html>
+        <body>
+          <table>
+            <tbody>
+              <tr>
+                <td class="views-field views-field-title">
+                  <a href="./campus/discover/buildings-and-classrooms/BIOL.htm" title="Building Details and Map">
+                    BIOL
+                  </a>
+                </td>
+                <td class="views-field views-field-field-building-address">
+                  Biological Sciences, 6270 University Blvd
+                </td>
+              </tr>
+              <tr>
+                <td class="views-field views-field-title">
+                  <a href="./campus/discover/buildings-and-classrooms/LSC.htm" title="Building Details and Map">
+                    LSC
+                  </a>
+                </td>
+                <td class="views-field views-field-field-building-address">
+                  Life Sciences Centre, 2350 Health Sciences Mall
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+			const expected: BuildingData[] = [
+				{
+					shortname: "BIOL",
+					address: "Biological Sciences, 6270 University Blvd",
+					href: "./campus/discover/buildings-and-classrooms/BIOL.htm",
+				},
+				{
+					shortname: "LSC",
+					address: "Life Sciences Centre, 2350 Health Sciences Mall",
+					href: "./campus/discover/buildings-and-classrooms/LSC.htm",
+				},
+			];
+
+			const result = parseIndexHtml(sampleHtml);
+			expect(result).to.deep.equal(expected);
+		});
+
+		it("should return an empty array if no valid building data is found", () => {
+			// HTML without any <td> with class "views-field views-field-title"
+			const invalidHtml = `
+      <html>
+        <body>
+          <table>
+            <tbody>
+              <tr>
+                <td class="not-the-right-class">No building here</td>
+              </tr>
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+			const result = parseIndexHtml(invalidHtml);
+			expect(result).to.be.an("array").that.is.empty;
+		});
+
+		it("should ignore entries missing href, shortname or address", () => {
+			const partialHtml = `
+      <html>
+        <body>
+          <table>
+            <tbody>
+              <tr>
+                <!-- Missing href -->
+                <td class="views-field views-field-title">
+                  <a title="Building Details and Map">BIOL</a>
+                </td>
+                <td class="views-field views-field-field-building-address">
+                  Biological Sciences, 6270 University Blvd
+                </td>
+              </tr>
+              <tr>
+                <!-- Missing address -->
+                <td class="views-field views-field-title">
+                  <a href="./campus/discover/buildings-and-classrooms/LSC.htm" title="Building Details and Map">
+                    LSC
+                  </a>
+                </td>
+                <td class="views-field views-field-field-building-address"></td>
+              </tr>
+              <tr>
+                <!-- Complete valid entry -->
+                <td class="views-field views-field-title">
+                  <a href="./campus/discover/buildings-and-classrooms/MC.htm" title="Building Details and Map">
+                    MC
+                  </a>
+                </td>
+                <td class="views-field views-field-field-building-address">
+                  Main Campus, 123 Campus Way
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+			const expected: BuildingData[] = [
+				{
+					shortname: "MC",
+					address: "Main Campus, 123 Campus Way",
+					href: "./campus/discover/buildings-and-classrooms/MC.htm",
+				},
+			];
+			const result = parseIndexHtml(partialHtml);
+			expect(result).to.deep.equal(expected);
+		});
+	});
+
+	describe("InsightFacade.performQuery Integration Test (Rooms Query)", function () {
+		const timo = 10000;
+		this.timeout(timo);
+		let insightFacade: InsightFacade;
+
+		before(async () => {
+			insightFacade = new InsightFacade();
+			// Dummy dataset for rooms.
+			// Only records with more than 300 seats and furniture containing "Tables" will qualify.
+			const dummyRooms = [
+				{ rooms_shortname: "OSBO", rooms_seats: 442, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
+				{ rooms_shortname: "OSBO", rooms_seats: 400, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
+				{ rooms_shortname: "OSBO", rooms_seats: 300, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" }, // Fails GT condition
+				{ rooms_shortname: "OSBO", rooms_seats: 450, rooms_furniture: "Chairs", rooms_address: "Addr1" }, // Fails IS condition
+				{ rooms_shortname: "HEBB", rooms_seats: 375, rooms_furniture: "Large Tables", rooms_address: "Addr2" },
+				{ rooms_shortname: "LSC", rooms_seats: 350, rooms_furniture: "Tables", rooms_address: "Addr3" },
+			];
+
+			// We want only OSBO, HEBB, and LSC groups.
+			const dummyDataset = {
+				meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: dummyRooms.length },
+				data: dummyRooms,
+			};
+
+			// Inject the dummy dataset into InsightFacade's datasets map.
+			// (Using a type assertion to access the private field.)
+			(insightFacade as any).datasets.set("rooms", dummyDataset);
+		});
+
+		it("should perform the rooms query and return correct results", async () => {
+			const query = {
+				WHERE: {
+					AND: [{ IS: { rooms_furniture: "*Tables*" } }, { GT: { rooms_seats: 300 } }],
+				},
+				OPTIONS: {
+					COLUMNS: ["rooms_shortname", "maxSeats"],
+					ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["rooms_shortname"],
+					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+				},
+			};
+
+			const results = await insightFacade.performQuery(query);
+			// We expect three groups: OSBO, HEBB, and LSC.
+			const three = 3;
+			expect(results).to.be.an("array").with.lengthOf(three);
+
+			// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+			expect(results[0].rooms_shortname).to.equal("OSBO");
+			const num1 = 442;
+			expect(results[0].maxSeats).to.equal(num1);
+			expect(results[1].rooms_shortname).to.equal("HEBB");
+			const num2 = 375;
+			expect(results[1].maxSeats).to.equal(num2);
+			expect(results[2].rooms_shortname).to.equal("LSC");
+			const num3 = 350;
+			expect(results[2].maxSeats).to.equal(num3);
+		});
+	});
+
+	describe("TransformationsProcessor with Missing Values", () => {
+		const sampleData = [
+			{ sections_title: "310", sections_avg: 90 },
+			{ sections_title: "310", sections_avg: 80 },
+			{ sections_title: "310" }, // missing sections_avg, treat as 0
+			{ sections_title: "310", sections_avg: 85 },
+			{ sections_title: "210", sections_avg: 74 },
+			{ sections_title: "210", sections_avg: 78 },
+			{ sections_title: "210", sections_avg: 72 },
+			{ sections_title: "210", sections_avg: 85 },
+		];
+		const groupKeys = ["sections_title"];
+		const applyRules = [{ overallAvg: { AVG: "sections_avg" } }];
+
+		it("should handle missing fields by treating them as 0", () => {
+			const results = performTransformations(sampleData, groupKeys, applyRules);
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const num1 = 63.75;
+			const num2 = 77.25;
+			const tol = 0.01;
+
+			// For group "310": average = (90 + 80 + 0 + 85)/4 = 63.75
+			expect(group310.overallAvg).to.be.closeTo(num1, tol);
+			// For group "210": average = (74+78+72+85)/4 = 77.25
+			expect(group210.overallAvg).to.be.closeTo(num2, tol);
+		});
+	});
+
+	describe("OrderEvaluator", () => {
+		it("should sort records in descending order by maxSeats", () => {
+			const data = [
+				{ rooms_fullname: "A", maxSeats: 150 },
+				{ rooms_fullname: "B", maxSeats: 200 },
+			];
+			const sorted = OrderEvaluator.order(data, { dir: "DOWN", keys: ["maxSeats"] });
+			expect(sorted[0].rooms_fullname).to.equal("B");
+			expect(sorted[1].rooms_fullname).to.equal("A");
+		});
+	});
+
+	describe("InsightFacade performQuery with rooms dataset", () => {
+		let insightFacade: InsightFacade;
+		const sampleRoomsData = [
+			{ rooms_fullname: "A", rooms_seats: 150, rooms_shortname: "A", rooms_number: "101" },
+			{ rooms_fullname: "A", rooms_seats: 100, rooms_shortname: "A", rooms_number: "102" },
+			{ rooms_fullname: "B", rooms_seats: 200, rooms_shortname: "B", rooms_number: "201" },
+		];
+
+		before(async () => {
+			insightFacade = new InsightFacade();
+			// Wait for initialization if necessary
+			// Directly inject a dummy "rooms" dataset into the in-memory map.
+			// (This is for testing purposes only.)
+			(insightFacade as any).datasets.set("rooms", {
+				meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: sampleRoomsData.length },
+				data: sampleRoomsData,
+			});
+		});
+
+		it("should perform a valid query with TRANSFORMATIONS", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["rooms_fullname", "maxSeats"],
+					ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["rooms_fullname"],
+					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+				},
+			};
+
+			const results = await insightFacade.performQuery(query);
+			expect(results).to.be.an("array").with.lengthOf(2);
+			// Since group "B" (max 200) should come before group "A" (max 150) when ordering DOWN
+			expect(results[0].rooms_fullname).to.equal("B");
+			const num1 = 200;
+			expect(results[0].maxSeats).to.equal(num1);
+			expect(results[1].rooms_fullname).to.equal("A");
+			const num2 = 150;
+			expect(results[1].maxSeats).to.equal(num2);
+		});
+	});
+
+	describe("TransformationsProcessor", () => {
+		const sampleData = [
+			{ rooms_fullname: "A", rooms_seats: 100, rooms_shortname: "A", rooms_number: "101" },
+			{ rooms_fullname: "A", rooms_seats: 150, rooms_shortname: "A", rooms_number: "102" },
+			{ rooms_fullname: "B", rooms_seats: 200, rooms_shortname: "B", rooms_number: "201" },
+			{ rooms_fullname: "B", rooms_seats: 250, rooms_shortname: "B", rooms_number: "202" },
+		];
+		const groupKeys = ["rooms_fullname"];
+		const applyRules = [
+			{ maxSeats: { MAX: "rooms_seats" } },
+			{ avgSeats: { AVG: "rooms_seats" } },
+			{ countRooms: { COUNT: "rooms_number" } },
+		];
+
+		it("should group data correctly and apply aggregations", () => {
+			const results = performTransformations(sampleData, groupKeys, applyRules);
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			const groupA = results.find((r) => r.rooms_fullname === "A");
+			const groupB = results.find((r) => r.rooms_fullname === "B");
+
+			expect(groupA).to.exist;
+			const num3 = 150;
+			expect(groupA.maxSeats).to.equal(num3);
+			const num4 = 125.0;
+			expect(groupA.avgSeats).to.equal(num4);
+			expect(groupA.countRooms).to.equal(2);
+			const num5 = 250;
+			const num6 = 225.0;
+			expect(groupB).to.exist;
+			expect(groupB.maxSeats).to.equal(num5);
+			expect(groupB.avgSeats).to.equal(num6);
+			expect(groupB.countRooms).to.equal(2);
+		});
+	});
+
+	describe("Combined Query Validator Tests", () => {
+		it("should validate a basic query without TRANSFORMATIONS", () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["rooms_fullname", "rooms_seats"],
+					ORDER: "rooms_seats",
+				},
+			};
+			expect(() => QueryValidator.validateQuery(query)).to.not.throw();
+		});
+
+		it("should validate a query with valid TRANSFORMATIONS", () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["rooms_fullname", "maxSeats"],
+					ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["rooms_fullname"],
+					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+				},
+			};
+			expect(() => QueryValidator.validateQuery(query)).to.not.throw();
+		});
+
+		it("should reject a query with TRANSFORMATIONS if a column is not in GROUP or APPLY", () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["rooms_fullname", "rooms_seats"], // rooms_seats is not in GROUP or APPLY
+					ORDER: "rooms_fullname",
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["rooms_fullname"],
+					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+				},
+			};
+			expect(() => QueryValidator.validateQuery(query)).to.throw(InsightError, /rooms_seats/);
+		});
+	});
+
+	describe("BuildingParserUtils Tests", () => {
+		it("should extract room data from sample building HTML with valid classes", () => {
+			const sampleBuildingHtml = `
+      <html>
+        <body>
+          <h1>Biological Sciences</h1>
+          <p>6270 University Boulevard</p>
+          <table>
+            <tr>
+              <th>Room</th>
+              <th>Capacity</th>
+              <th>Furniture type</th>
+              <th>Room type</th>
+              <th>More info</th>
+            </tr>
+            <tr>
+              <td class="views-field views-field-field-room-number">1503</td>
+              <td class="views-field views-field-field-room-capacity">16</td>
+              <td class="views-field views-field-field-room-furniture">Classroom-Movable Tables & Chairs</td>
+              <td class="views-field views-field-field-room-type">Small Group</td>
+              <td class="views-field views-field-title"><a href="./BIOL1503.htm">More info</a></td>
+            </tr>
+            <tr>
+              <td class="views-field views-field-field-room-number">2000</td>
+              <td class="views-field views-field-field-room-capacity">228</td>
+              <td class="views-field views-field-field-room-furniture">Classroom-Fixed Tablets</td>
+              <td class="views-field views-field-field-room-type">Tiered Large Group</td>
+              <td class="views-field views-field-title"><a href="./BIOL2000.htm">More info</a></td>
+            </tr>
+            <tr>
+              <td class="views-field views-field-field-room-number">2200</td>
+              <td class="views-field views-field-field-room-capacity">76</td>
+              <td class="views-field views-field-field-room-furniture">Classroom-Fixed Tables/Movable Chairs</td>
+              <td class="views-field views-field-field-room-type">Tiered Large Group</td>
+              <td class="views-field views-field-title"><a href="./BIOL2200.htm">More info</a></td>
+            </tr>
+            <tr>
+              <td class="views-field views-field-field-room-number">2519</td>
+              <td class="views-field views-field-field-room-capacity">16</td>
+              <td class="views-field views-field-field-room-furniture">Classroom-Movable Tables & Chairs</td>
+              <td class="views-field views-field-field-room-type">Small Group</td>
+              <td class="views-field views-field-title"><a href="./BIOL2519.htm">More info</a></td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+			const buildingInfo = {
+				shortname: "BIOL",
+				address: "6270 University Boulevard",
+				lat: 49.26125,
+				lon: -123.24807,
+				fullname: "Biological Sciences",
+			};
+
+			const rooms = parseBuildingHtml(sampleBuildingHtml, buildingInfo);
+			const four = 4;
+			expect(rooms).to.be.an("array").with.lengthOf(four);
+
+			// Verify the first room's details
+			const room1 = rooms[0];
+			expect(room1.rooms_number).to.equal("1503");
+			const num = 16;
+			expect(room1.rooms_seats).to.equal(num);
+			expect(room1.rooms_furniture).to.equal("Classroom-Movable Tables & Chairs");
+			expect(room1.rooms_type).to.equal("Small Group");
+			expect(room1.rooms_href).to.equal("./BIOL1503.htm");
+			expect(room1.rooms_name).to.equal("BIOL_1503");
+			expect(room1.rooms_fullname).to.equal("Biological Sciences");
+		});
+	});
+
+	describe("GeoHelper Unit Tests", () => {
+		it("should return valid lat and lon for a known valid address", async () => {
+			const validAddress = "6245 Agronomy Road V6T 1Z4";
+			try {
+				const { lat, lon } = await fetchGeolocation(validAddress);
+				expect(lat).to.be.a("number");
+				expect(lon).to.be.a("number");
+			} catch (error) {
+				expect.fail(`Expected valid geolocation, but got error: ${(error as Error).message}`);
+			}
+		});
+
+		it("should reject for an invalid address", async () => {
+			const invalidAddress = "Invalid Address 123";
+			try {
+				await fetchGeolocation(invalidAddress);
+				expect.fail("Expected fetchGeolocation to reject for an invalid address");
+			} catch (error) {
+				expect(error).to.be.instanceOf(Error);
+				expect((error as Error).message).to.be.a("string");
+			}
+		});
+	});
+
+	describe("QueryKeyValidator - Rooms", () => {
+		it("should accept valid rooms SFields", () => {
+			expect(() => validateSField("fullname", "rooms")).to.not.throw();
+			expect(() => validateSField("shortname", "rooms")).to.not.throw();
+			expect(() => validateSField("number", "rooms")).to.not.throw();
+			expect(() => validateSField("name", "rooms")).to.not.throw();
+			expect(() => validateSField("address", "rooms")).to.not.throw();
+			expect(() => validateSField("type", "rooms")).to.not.throw();
+			expect(() => validateSField("furniture", "rooms")).to.not.throw();
+			expect(() => validateSField("href", "rooms")).to.not.throw();
+		});
+
+		it("should reject invalid rooms SFields", () => {
+			expect(() => validateSField("dept", "rooms")).to.throw();
+			expect(() => validateSField("id", "rooms")).to.throw();
+		});
+
+		it("should accept valid rooms MFields", () => {
+			expect(() => validateMField("lat", "rooms")).to.not.throw();
+			expect(() => validateMField("lon", "rooms")).to.not.throw();
+			expect(() => validateMField("seats", "rooms")).to.not.throw();
+		});
+
+		it("should reject invalid rooms MFields", () => {
+			expect(() => validateMField("avg", "rooms")).to.throw();
+		});
+	});
+
+	describe("QueryKeyValidator - Inferred Dataset Kind", () => {
+		it("should infer 'rooms' for keys with id 'rooms'", () => {
+			expect(() => validateSKey("rooms_fullname")).to.not.throw();
+			expect(() => validateMKey("rooms_seats")).to.not.throw();
+		});
+
+		it("should infer 'sections' for keys with any other id", () => {
+			expect(() => validateSKey("sections_dept")).to.not.throw();
+			expect(() => validateMKey("sections_avg")).to.not.throw();
+		});
+
+		it("should reject keys with invalid fields based on inferred dataset kind", () => {
+			expect(() => validateSKey("sections_fullname")).to.throw();
+			expect(() => validateMKey("rooms_avg")).to.throw();
+		});
 	});
 
 	describe("AddDataset", function () {
