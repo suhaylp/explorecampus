@@ -222,16 +222,16 @@ export default class InsightFacade implements IInsightFacade {
 
 	private transformDataset(datasetId: string, data: Section[]): Record<string, any>[] {
 		return data.map((record) => ({
-			[`${datasetId}_dept`]: record.dept,
-			[`${datasetId}_avg`]: record.avg,
-			[`${datasetId}_pass`]: record.pass,
-			[`${datasetId}_fail`]: record.fail,
-			[`${datasetId}_audit`]: record.audit,
-			[`${datasetId}_year`]: record.year,
-			[`${datasetId}_id`]: record.id,
-			[`${datasetId}_instructor`]: record.instructor,
-			[`${datasetId}_title`]: record.title,
-			[`${datasetId}_uuid`]: record.uuid,
+			[`${datasetId}_dept`]: record.dept ?? "",
+			[`${datasetId}_avg`]: record.avg ?? 0,
+			[`${datasetId}_pass`]: record.pass ?? 0,
+			[`${datasetId}_fail`]: record.fail ?? 0,
+			[`${datasetId}_audit`]: record.audit ?? 0,
+			[`${datasetId}_year`]: record.year ?? 0,
+			[`${datasetId}_id`]: record.id ?? "",
+			[`${datasetId}_instructor`]: record.instructor ?? "",
+			[`${datasetId}_title`]: record.title ?? "",
+			[`${datasetId}_uuid`]: record.uuid ?? "",
 		}));
 	}
 
