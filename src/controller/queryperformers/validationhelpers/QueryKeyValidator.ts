@@ -1,13 +1,12 @@
-// src/controller/QueryKeyValidator.ts
 
-export type SKey = string; // Expected format: `${id}_${SField}`
-export type MKey = string; // Expected format: `${id}_${MField}`
+export type SKey = string;
+export type MKey = string;
 
-// Allowed fields for sections
+
 const allowedSectionsSFields: string[] = ["dept", "id", "instructor", "title", "uuid"];
 const allowedSectionsMFields: string[] = ["avg", "pass", "fail", "audit", "year"];
 
-// Allowed fields for rooms
+
 const allowedRoomsSFields: string[] = ["fullname", "shortname", "number", "name", "address", "type", "furniture", "href"];
 const allowedRoomsMFields: string[] = ["lat", "lon", "seats"];
 
