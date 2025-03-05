@@ -4,7 +4,7 @@ import Decimal from "decimal.js";
 export function groupData(data: any[], groupKeys: string[]): Map<string, any[]> {
 	const groups = new Map<string, any[]>();
 	data.forEach((record) => {
-		const groupIdentifier = groupKeys.map((key) => record[key]).join("|");
+		const groupIdentifier = groupKeys.map(key => record[key] ?? "undefined").join("|");
 		if (!groups.has(groupIdentifier)) {
 			groups.set(groupIdentifier, []);
 		}
