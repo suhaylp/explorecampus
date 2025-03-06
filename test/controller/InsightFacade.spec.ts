@@ -34,6 +34,8 @@ import InsightFacade from "../../src/controller/InsightFacade";
 import { parseIndexHtml } from "../../src/controller/dataset/IndexParserUtils";
 import { BuildingData } from "../../src/controller/dataset/IndexParserUtils";
 import { TransformationsValidator } from "../../src/controller/queryperformers/validationhelpers/QueryTransformationsValidator";
+// import {QueryExecutor} from "../../src/controller/queryperformers/QueryExecutor";
+// import {QueryEngine} from "../../src/controller/queryperformers/QueryEngine";
 
 use(chaiAsPromised);
 
@@ -494,6 +496,53 @@ describe("InsightFacade", function () {
 			expect(group210.overallAvg).to.be.closeTo(num2, tol);
 		});
 	});
+
+	// it("should perform the rooms query and return correct results", async () => {
+	// 	const query = {
+	//
+	//  "WHERE": {},
+	//
+	//  "OPTIONS": {
+	//
+	//       "COLUMNS": ["sections_title", "overallAvg"]
+	//
+	//    },
+	//
+	//    "TRANSFORMATIONS": {
+	//
+	//       "GROUP": ["sections_title"],
+	//
+	//       "APPLY": [{
+	//
+	//           "overallAvg": {
+	//
+	//              "AVG": "sections_avg"
+	//
+	//           }
+	//
+	//       }]
+	//
+	//    }
+	//
+	// },
+	// 	};
+	//
+	// 	const results = await insightFacade.performQuery(query);
+	// 	// We expect three groups: OSBO, HEBB, and LSC.
+	// 	const three = 3;
+	// 	expect(results).to.be.an("array").with.lengthOf(three);
+	//
+	// 	// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+	// 	expect(results[0].rooms_shortname).to.equal("OSBO");
+	// 	const num1 = 442;
+	// 	expect(results[0].maxSeats).to.equal(num1);
+	// 	expect(results[1].rooms_shortname).to.equal("HEBB");
+	// 	const num2 = 375;
+	// 	expect(results[1].maxSeats).to.equal(num2);
+	// 	expect(results[2].rooms_shortname).to.equal("LSC");
+	// 	const num3 = 350;
+	// 	expect(results[2].maxSeats).to.equal(num3);
+	// });
 
 	describe("OrderEvaluator", () => {
 		it("should sort records in descending order by maxSeats", () => {
@@ -1394,6 +1443,98 @@ describe("InsightFacade", function () {
 			await expect(facade.performQuery(invalidQuery)).to.be.rejectedWith(InsightError);
 		});
 	});
+
+	describe("TransformationsProcessor with Valid Data", () => {
+		const sampleData = [
+			{ sections_uuid: "1", sections_instructor: "Jean", sections_avg: 90, sections_title: "310" },
+			{ sections_uuid: "2", sections_instructor: "Jean", sections_avg: 80, sections_title: "310" },
+			{ sections_uuid: "3", sections_instructor: "Casey", sections_avg: 95, sections_title: "310" },
+			{ sections_uuid: "4", sections_instructor: "Casey", sections_avg: 85, sections_title: "310" },
+			{ sections_uuid: "5", sections_instructor: "Kelly", sections_avg: 74, sections_title: "210" },
+			{ sections_uuid: "6", sections_instructor: "Kelly", sections_avg: 78, sections_title: "210" },
+			{ sections_uuid: "7", sections_instructor: "Kelly", sections_avg: 72, sections_title: "210" },
+			{ sections_uuid: "8", sections_instructor: "Eli", sections_avg: 85, sections_title: "210" },
+		];
+		const groupKeys = ["sections_title"];
+		const applyRules = [{ overallAvg: { AVG: "sections_avg" } }];
+
+		it("should correctly compute the average per group", () => {
+			const results = performTransformations(sampleData, groupKeys, applyRules);
+			expect(results).to.be.an("array").with.lengthOf(2);
+			// console.log(results);
+
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expectedAvg310 = 87.5; // (90 + 80 + 95 + 85)/4
+			const expectedAvg210 = 77.25; // (74 + 78 + 72 + 85)/4
+			const tolerance = 0.01;
+
+			expect(group310.overallAvg).to.be.closeTo(expectedAvg310, tolerance);
+			expect(group210.overallAvg).to.be.closeTo(expectedAvg210, tolerance);
+		});
+	});
+
+	// COME BACK TO THIS
+	// describe("InsightFacade performQuery with sections dataset", () => {
+	// 	let insightFacade: InsightFacade;
+	// 	const sampleSectionsData = [
+	// 		{ sections_uuid: "1", sections_instructor: "Jean", sections_avg: 90, sections_title: "310" },
+	// 		{ sections_uuid: "2", sections_instructor: "Jean", sections_avg: 80, sections_title: "310" },
+	// 		{ sections_uuid: "3", sections_instructor: "Casey", sections_avg: 95, sections_title: "310" },
+	// 		{ sections_uuid: "4", sections_instructor: "Casey", sections_avg: 85, sections_title: "310" },
+	// 		{ sections_uuid: "5", sections_instructor: "Kelly", sections_avg: 74, sections_title: "210" },
+	// 		{ sections_uuid: "6", sections_instructor: "Kelly", sections_avg: 78, sections_title: "210" },
+	// 		{ sections_uuid: "7", sections_instructor: "Kelly", sections_avg: 72, sections_title: "210" },
+	// 		{ sections_uuid: "8", sections_instructor: "Eli", sections_avg: 85, sections_title: "210" }
+	// 	];
+	//
+	// 	before(async () => {
+	// 		insightFacade = new InsightFacade();
+	// 		// (insightFacade as any).datasets.set("sections", {
+	// 		// 	meta: { id: "sections", kind: InsightDatasetKind.Sections, numRows: sampleSectionsData.length },
+	// 		// 	data: sampleSectionsData,
+	// 		// });
+	// 		insightFacade.addDataset("idk", sampleSectionsData,)
+	// 	});
+	//
+	// 	it("should correctly group and calculate averages", async () => {
+	// 		const query = {
+	// 			WHERE: {},
+	// 			OPTIONS: {
+	// 				COLUMNS: ["sections_title", "overallAvg"],
+	// 				ORDER: { dir: "DOWN", keys: ["overallAvg"] }
+	// 			},
+	// 			TRANSFORMATIONS: {
+	// 				GROUP: ["sections_title"],
+	// 				APPLY: [{ overallAvg: { AVG: "sections_avg" } }]
+	// 			}
+	// 		};
+	//
+	// 		const results = await insightFacade.performQuery(query);
+	// 		console.log(results);
+	// 		expect(results).to.be.an("array").with.lengthOf(2);
+	//
+	// 		// this.timeout(10000);
+	// 		const group310 = results.find((r) => r.sections_title === "310");
+	// 		const group210 = results.find((r) => r.sections_title === "210");
+	//
+	// 		expect(group310).to.exist;
+	// 		expect(group210).to.exist;
+	//
+	// 		const expectedAvg310 = 87.5; // (90 + 80 + 95 + 85) / 4
+	// 		const expectedAvg210 = 77.25; // (74 + 78 + 72 + 85) / 4
+	// 		const tolerance = 0.01;
+	//
+	// 		// @ts-ignore
+	// 		expect(group310.overallAvg).to.be.closeTo(expectedAvg310, tolerance);
+	// 		// @ts-ignore
+	// 		expect(group210.overallAvg).to.be.closeTo(expectedAvg210, tolerance);
+	// 	});
+	// });
 
 	describe("Data Persistence and Transformation", () => {
 		let facade2: InsightFacade;
