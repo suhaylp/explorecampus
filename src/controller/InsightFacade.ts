@@ -12,11 +12,11 @@ import {
 import { QueryEngine } from "./queryperformers/QueryEngine";
 import { Section } from "./dataset/Section";
 import { parseIndexHtml } from "./dataset/IndexParserUtils";
-import { parseBuildingHtml, RoomData } from "./dataset/BuildingParserUtils";
+import { parseBuildingHtml, Room } from "./dataset/BuildingParserUtils";
 import { fetchGeolocation } from "./dataset/GeoHelper";
 
 export default class InsightFacade implements IInsightFacade {
-	private datasets: Map<string, { meta: InsightDataset; data: Section[] | RoomData[] }>;
+	private datasets: Map<string, { meta: InsightDataset; data: Section[] | Room[] }>;
 	private datasetStoragePath: string;
 	private errorsList: string[];
 	private initialized: Promise<void>;
@@ -191,15 +191,16 @@ export default class InsightFacade implements IInsightFacade {
 				if (typeof query !== "object" || query === null) {
 					throw new InsightError("Query must be a non-null object");
 				}
-				const records = this.getRecordsFromQuery(query);
-				resolve(QueryEngine.runQuery(query, records));
+				const { dataset, records } = this.getRecordsFromQuery(query);
+				//console.log(records);
+				resolve(QueryEngine.runQuery(query, dataset, records));
 			} catch (err) {
 				reject(err);
 			}
 		});
 	}
 
-	private getRecordsFromQuery(query: any): Record<string, any>[] {
+	private getRecordsFromQuery(query: any): { dataset: Record<string, any>; records: Record<string, any>[] } {
 		if (!query.OPTIONS || !Array.isArray(query.OPTIONS.COLUMNS) || query.OPTIONS.COLUMNS.length === 0) {
 			throw new InsightError("OPTIONS.COLUMNS is missing or empty");
 		}
@@ -215,10 +216,31 @@ export default class InsightFacade implements IInsightFacade {
 			throw new InsightError(`Dataset ${datasetId} not found`);
 		}
 		const dataset = this.datasets.get(datasetId)!;
-		return dataset.meta.kind === InsightDatasetKind.Rooms
-			? (dataset.data as RoomData[])
-			: this.transformDataset(datasetId, dataset.data as Section[]);
+		let records: Record<string, any>[];
+		if (dataset.meta.kind === InsightDatasetKind.Rooms) {
+			records = this.transformRoomsDataset(datasetId, dataset.data as Room[]);
+		} else {
+			records = this.transformDataset(datasetId, dataset.data as Section[]);
+		}
+		return { dataset, records };
 	}
+
+	private transformRoomsDataset(datasetId: string, data: Room[]): Record<string, any>[] {
+		return data.map(record => ({
+			[`${datasetId}_fullname`]: record.fullname ?? "",
+			[`${datasetId}_shortname`]: record.shortname ?? "",
+			[`${datasetId}_number`]: record.number ?? "",
+			[`${datasetId}_name`]: record.name ?? "",
+			[`${datasetId}_address`]: record.address ?? "",
+			[`${datasetId}_lat`]: record.lat ?? 0,
+			[`${datasetId}_lon`]: record.lon ?? 0,
+			[`${datasetId}_seats`]: record.seats ?? 0,
+			[`${datasetId}_type`]: record.type ?? "",
+			[`${datasetId}_furniture`]: record.furniture ?? "",
+			[`${datasetId}_href`]: record.href ?? "",
+		}));
+	}
+
 
 	private transformDataset(datasetId: string, data: Section[]): Record<string, any>[] {
 		return data.map((record) => ({

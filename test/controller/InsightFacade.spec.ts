@@ -404,8 +404,10 @@ describe("InsightFacade", function () {
 		const timo = 10000;
 		this.timeout(timo);
 		let insightFacade: InsightFacade;
+		let roomsData: string;
 
 		before(async () => {
+			await clearDisk();
 			insightFacade = new InsightFacade();
 			// Dummy dataset for rooms.
 			// Only records with more than 300 seats and furniture containing "Tables" will qualify.
@@ -427,6 +429,11 @@ describe("InsightFacade", function () {
 			// Inject the dummy dataset into InsightFacade's datasets map.
 			// (Using a type assertion to access the private field.)
 			(insightFacade as any).datasets.set("rooms", dummyDataset);
+			roomsData = await getContentFromArchives("campus.zip");
+			await insightFacade.addDataset("rooms2", roomsData, InsightDatasetKind.Rooms);
+			//await insightFacade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
+			//console.log(roomsData)
+
 		});
 
 		it("should perform the rooms query and return correct results", async () => {
@@ -460,6 +467,72 @@ describe("InsightFacade", function () {
 			const num3 = 350;
 			expect(results[2].maxSeats).to.equal(num3);
 		});
+
+		it("using addedDataset: should perform the rooms query and return correct results", async () => {
+			let isf: InsightFacade;
+			isf = new InsightFacade();
+
+			const query = {
+				"WHERE": {
+					"AND": [
+						{
+							"IS": {
+								"rooms2_furniture": "*Tables*"
+							}
+						},
+						{
+							"GT": {
+								"rooms2_seats": 300
+							}
+						}
+					]
+				},
+				"OPTIONS": {
+					"COLUMNS": [
+						"rooms2_shortname",
+						"maxSeats"
+					],
+					"ORDER": {
+						"dir": "DOWN",
+						"keys": [
+							"maxSeats"
+						]
+					}
+				},
+				"TRANSFORMATIONS": {
+					"GROUP": [
+						"rooms2_shortname"
+					],
+					"APPLY": [
+						{
+							"maxSeats": {
+								"MAX": "rooms2_seats"
+							}
+						}
+					]
+				}
+			};
+
+			const results = await isf.performQuery(query);
+			// We expect three groups: OSBO, HEBB, and LSC.
+			const three = 3;
+			expect(results).to.be.an("array").with.lengthOf(three);
+			console.log(results);
+
+			// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+			expect(results[0].rooms_shortname).to.equal("OSBO");
+
+			const num1 = 442;
+			expect(results[0].maxSeats).to.equal(num1);
+			expect(results[1].rooms_shortname).to.equal("HEBB");
+			const num2 = 375;
+			expect(results[1].maxSeats).to.equal(num2);
+			expect(results[2].rooms_shortname).to.equal("LSC");
+			const num3 = 350;
+			expect(results[2].maxSeats).to.equal(num3);
+		});
+
+
 	});
 
 	describe("TransformationsProcessor with Missing Values", () => {
@@ -645,7 +718,7 @@ describe("InsightFacade", function () {
 					ORDER: "rooms_seats",
 				},
 			};
-			expect(() => QueryValidator.validateQuery(query)).to.not.throw();
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.not.throw();
 		});
 
 		it("should validate a query with valid TRANSFORMATIONS", () => {
@@ -660,7 +733,7 @@ describe("InsightFacade", function () {
 					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
 				},
 			};
-			expect(() => QueryValidator.validateQuery(query)).to.not.throw();
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.not.throw();
 		});
 
 		it("should reject a query with TRANSFORMATIONS if a column is not in GROUP or APPLY", () => {
@@ -675,7 +748,7 @@ describe("InsightFacade", function () {
 					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
 				},
 			};
-			expect(() => QueryValidator.validateQuery(query)).to.throw(InsightError, /rooms_seats/);
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.throw(InsightError, /rooms_seats/);
 		});
 	});
 
@@ -741,14 +814,14 @@ describe("InsightFacade", function () {
 
 			// Verify the first room's details
 			const room1 = rooms[0];
-			expect(room1.rooms_number).to.equal("1503");
+			expect(room1.number).to.equal("1503");
 			const num = 16;
-			expect(room1.rooms_seats).to.equal(num);
-			expect(room1.rooms_furniture).to.equal("Classroom-Movable Tables & Chairs");
-			expect(room1.rooms_type).to.equal("Small Group");
-			expect(room1.rooms_href).to.equal("./BIOL1503.htm");
-			expect(room1.rooms_name).to.equal("BIOL_1503");
-			expect(room1.rooms_fullname).to.equal("Biological Sciences");
+			expect(room1.seats).to.equal(num);
+			expect(room1.furniture).to.equal("Classroom-Movable Tables & Chairs");
+			expect(room1.type).to.equal("Small Group");
+			expect(room1.href).to.equal("./BIOL1503.htm");
+			expect(room1.name).to.equal("BIOL_1503");
+			expect(room1.fullname).to.equal("Biological Sciences");
 		});
 	});
 
@@ -776,6 +849,7 @@ describe("InsightFacade", function () {
 		});
 	});
 
+	// QueryKeyValidator - Rooms
 	describe("QueryKeyValidator - Rooms", () => {
 		it("should accept valid rooms SFields", () => {
 			expect(() => validateSField("fullname", "rooms")).to.not.throw();
@@ -804,22 +878,48 @@ describe("InsightFacade", function () {
 		});
 	});
 
-	describe("QueryKeyValidator - Inferred Dataset Kind", () => {
-		it("should infer 'rooms' for keys with id 'rooms'", () => {
-			expect(() => validateSKey("rooms_fullname")).to.not.throw();
-			expect(() => validateMKey("rooms_seats")).to.not.throw();
-		});
-
-		it("should infer 'sections' for keys with any other id", () => {
-			expect(() => validateSKey("sections_dept")).to.not.throw();
-			expect(() => validateMKey("sections_avg")).to.not.throw();
-		});
-
-		it("should reject keys with invalid fields based on inferred dataset kind", () => {
-			expect(() => validateSKey("sections_fullname")).to.throw();
-			expect(() => validateMKey("rooms_avg")).to.throw();
-		});
-	});
+	// // Tests for a Rooms dataset
+	// describe("QueryKeyValidator - Rooms 2", () => {
+	// 	it("should accept a valid string key for Rooms", () => {
+	// 		// Pass "rooms" explicitly as the dataset kind.
+	// 		expect(() => validateSKey("rooms_fullname", "rooms")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a string key with a wrong prefix for Rooms", () => {
+	// 		expect(() => validateSKey("sections_fullname", "rooms")).to.throw(InsightError);
+	// 		expect(() => validateSKey("fullname", "rooms")).to.throw(InsightError);
+	// 	});
+	//
+	// 	it("should accept a valid mkey for Rooms", () => {
+	// 		expect(() => validateMKey("rooms_seats", "rooms")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a mkey with a wrong prefix for Rooms", () => {
+	// 		expect(() => validateMKey("sections_avg", "rooms")).to.throw(InsightError);
+	// 		expect(() => validateMKey("avg", "rooms")).to.throw(InsightError);
+	// 	});
+	// });
+	//
+	// // Tests for a Sections dataset
+	// describe("QueryKeyValidator - Sections", () => {
+	// 	it("should accept a valid string key for Sections", () => {
+	// 		expect(() => validateSKey("sections_dept", "sections")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a string key with a wrong prefix for Sections", () => {
+	// 		expect(() => validateSKey("rooms_dept", "sections")).to.throw(InsightError);
+	// 		expect(() => validateSKey("dept", "sections")).to.throw(InsightError);
+	// 	});
+	//
+	// 	it("should accept a valid mkey for Sections", () => {
+	// 		expect(() => validateMKey("sections_avg", "sections")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a mkey with a wrong prefix for Sections", () => {
+	// 		expect(() => validateMKey("rooms_avg", "sections")).to.throw(InsightError);
+	// 		expect(() => validateMKey("avg", "sections")).to.throw(InsightError);
+	// 	});
+	// });
 
 	describe("AddDataset", function () {
 		beforeEach(async function () {
@@ -1478,63 +1578,279 @@ describe("InsightFacade", function () {
 		});
 	});
 
-	// COME BACK TO THIS
-	// describe("InsightFacade performQuery with sections dataset", () => {
-	// 	let insightFacade: InsightFacade;
-	// 	const sampleSectionsData = [
-	// 		{ sections_uuid: "1", sections_instructor: "Jean", sections_avg: 90, sections_title: "310" },
-	// 		{ sections_uuid: "2", sections_instructor: "Jean", sections_avg: 80, sections_title: "310" },
-	// 		{ sections_uuid: "3", sections_instructor: "Casey", sections_avg: 95, sections_title: "310" },
-	// 		{ sections_uuid: "4", sections_instructor: "Casey", sections_avg: 85, sections_title: "310" },
-	// 		{ sections_uuid: "5", sections_instructor: "Kelly", sections_avg: 74, sections_title: "210" },
-	// 		{ sections_uuid: "6", sections_instructor: "Kelly", sections_avg: 78, sections_title: "210" },
-	// 		{ sections_uuid: "7", sections_instructor: "Kelly", sections_avg: 72, sections_title: "210" },
-	// 		{ sections_uuid: "8", sections_instructor: "Eli", sections_avg: 85, sections_title: "210" }
-	// 	];
-	//
-	// 	before(async () => {
-	// 		insightFacade = new InsightFacade();
-	// 		// (insightFacade as any).datasets.set("sections", {
-	// 		// 	meta: { id: "sections", kind: InsightDatasetKind.Sections, numRows: sampleSectionsData.length },
-	// 		// 	data: sampleSectionsData,
-	// 		// });
-	// 		insightFacade.addDataset("idk", sampleSectionsData,)
-	// 	});
-	//
-	// 	it("should correctly group and calculate averages", async () => {
-	// 		const query = {
-	// 			WHERE: {},
-	// 			OPTIONS: {
-	// 				COLUMNS: ["sections_title", "overallAvg"],
-	// 				ORDER: { dir: "DOWN", keys: ["overallAvg"] }
-	// 			},
-	// 			TRANSFORMATIONS: {
-	// 				GROUP: ["sections_title"],
-	// 				APPLY: [{ overallAvg: { AVG: "sections_avg" } }]
-	// 			}
-	// 		};
-	//
-	// 		const results = await insightFacade.performQuery(query);
-	// 		console.log(results);
-	// 		expect(results).to.be.an("array").with.lengthOf(2);
-	//
-	// 		// this.timeout(10000);
-	// 		const group310 = results.find((r) => r.sections_title === "310");
-	// 		const group210 = results.find((r) => r.sections_title === "210");
-	//
-	// 		expect(group310).to.exist;
-	// 		expect(group210).to.exist;
-	//
-	// 		const expectedAvg310 = 87.5; // (90 + 80 + 95 + 85) / 4
-	// 		const expectedAvg210 = 77.25; // (74 + 78 + 72 + 85) / 4
-	// 		const tolerance = 0.01;
-	//
-	// 		// @ts-ignore
-	// 		expect(group310.overallAvg).to.be.closeTo(expectedAvg310, tolerance);
-	// 		// @ts-ignore
-	// 		expect(group210.overallAvg).to.be.closeTo(expectedAvg210, tolerance);
-	// 	});
-	// });
+
+	describe("performQuery with GROUP and APPLY", () => {
+		let insightFacade: InsightFacade;
+		const sampleSectionsData = [
+			{ uuid: "1", instructor: "Jean", avg: 90, title: "310" },
+			{ uuid: "2", instructor: "Jean", avg: 80, title: "310" },
+			{ uuid: "3", instructor: "Casey",avg: 95, title: "310" },
+			{ uuid: "4", instructor: "Casey",avg: 85, title: "310" },
+			{ uuid: "5", instructor: "Kelly",avg: 74, title: "210" },
+			{ uuid: "6", instructor: "Kelly",avg: 78, title: "210" },
+			{ uuid: "7", instructor: "Kelly",avg: 72, title: "210" },
+			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" }
+		];
+
+		before(async () => {
+			insightFacade = new InsightFacade();
+			(insightFacade as any).datasets.set("sections", {
+				meta: { id: "sections", kind: InsightDatasetKind.Sections, numRows: sampleSectionsData.length },
+				data: sampleSectionsData,
+			});
+			sections = await getContentFromArchives("oneCourse.zip");
+			await insightFacade.addDataset("singleID", sections, InsightDatasetKind.Sections);
+			// insightFacade.addDataset("idk", sampleSectionsData,)
+		});
+
+		it("for singleCourse: should correctly group and find max", async () => {
+			let  insightFacade2: InsightFacade;
+			insightFacade2 = new InsightFacade();
+			const query = {
+				"WHERE": {
+					"GT": {
+						"singleID_avg": 75
+					}
+				},
+				"OPTIONS": {
+					"COLUMNS": [
+						"singleID_uuid",
+						"maxAvg"
+					]
+				},
+				"TRANSFORMATIONS": {
+					"GROUP": [
+						"singleID_uuid"
+					],
+					"APPLY": [
+						{
+							"maxAvg": {
+								"MAX": "singleID_avg"
+							}
+						}
+					]
+				}
+			};
+
+			const results = await insightFacade2.performQuery(query);
+			console.log(results);
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.singleID_uuid === "30095");
+			const group210 = results.find((r) => r.singleID_uuid === "30096");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expected310 = 76.23;
+			const expected210 = 76.23;
+			const tolerance = 0.01;
+
+			if (group310) {
+				expect(group310.maxAvg).to.equal(expected310);
+			}
+			if (group210) {
+				expect(group210.maxAvg).to.equal(expected210);
+			}
+		});
+
+
+		it("should correctly group and find max", async () => {
+			// let  insightFacade2: InsightFacade;
+			// insightFacade2 = new InsightFacade();
+			const query = {
+				WHERE: {},
+				OPTIONS: { COLUMNS: ["sections_title", "maxAvg"] },
+				TRANSFORMATIONS: {
+					GROUP: ["sections_title"],
+					APPLY: [{ maxAvg: { MAX: "sections_avg" } }]
+				}
+			};
+
+			const results = await insightFacade.performQuery(query);
+			console.log(results);
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expected310 = 95;
+			const expected210 = 85;
+			const tolerance = 0.01;
+
+			if (group310) {
+				expect(group310.maxAvg).to.equal(expected310);
+			}
+			if (group210) {
+				expect(group210.maxAvg).to.equal(expected210);
+			}
+		});
+
+		it("should correctly group and find min", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: { COLUMNS: ["sections_title", "minAvg"] },
+				TRANSFORMATIONS: {
+					GROUP: ["sections_title"],
+					APPLY: [{ minAvg: { MIN: "sections_avg" } }]
+				}
+			};
+
+			const results = await insightFacade.performQuery(query);
+			console.log(results);
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expected310 = 80;
+			const expected210 = 72;
+			const tolerance = 0.01;
+
+			if (group310) {
+				expect(group310.minAvg).to.equal(expected310);
+			}
+			if (group210) {
+				expect(group210.minAvg).to.equal(expected210);
+			}
+		});
+
+		it("should correctly group and find sum", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: { COLUMNS: ["sections_title", "sumAvg"] },
+				TRANSFORMATIONS: {
+					GROUP: ["sections_title"],
+					APPLY: [{ sumAvg: { SUM: "sections_avg" } }]
+				}
+			};
+
+			const results = await insightFacade.performQuery(query);
+			console.log(results);
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expected310 = 350;
+			const expected210 = 309;
+			const tolerance = 0.01;
+
+			if (group310) {
+				expect(group310.sumAvg).to.equal(expected310);
+			}
+			if (group210) {
+				expect(group210.sumAvg).to.equal(expected210);
+			}
+		});
+
+		it("should correctly group and find count", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: { COLUMNS: ["sections_title", "uniqueInstructors"] },
+				TRANSFORMATIONS: {
+					GROUP: ["sections_title"],
+					APPLY: [{ uniqueInstructors: { COUNT: "sections_instructor" } }]
+				}
+			};
+
+			const results = await insightFacade.performQuery(query);
+			console.log(results);
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expected310 = 2;
+			const expected210 = 2;
+			const tolerance = 0.01;
+
+			if (group310) {
+				expect(group310.uniqueInstructors).to.equal(expected310);
+			}
+			if (group210) {
+				expect(group210.uniqueInstructors).to.equal(expected210);
+			}
+		});
+
+	});
+
+	describe("InsightFacade performQuery with sections dataset", () => {
+		let insightFacade: InsightFacade;
+		const sampleSectionsData = [
+			{ uuid: "1", instructor: "Jean", avg: 90, title: "310" },
+			{ uuid: "2", instructor: "Jean", avg: 80, title: "310" },
+			{ uuid: "3", instructor: "Casey",avg: 95, title: "310" },
+			{ uuid: "4", instructor: "Casey",avg: 85, title: "310" },
+			{ uuid: "5", instructor: "Kelly",avg: 74, title: "210" },
+			{ uuid: "6", instructor: "Kelly",avg: 78, title: "210" },
+			{ uuid: "7", instructor: "Kelly",avg: 72, title: "210" },
+			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" }
+		];
+
+		before(async () => {
+			insightFacade = new InsightFacade();
+			(insightFacade as any).datasets.set("sections", {
+				meta: { id: "sections", kind: InsightDatasetKind.Sections, numRows: sampleSectionsData.length },
+				data: sampleSectionsData,
+			});
+			// insightFacade.addDataset("idk", sampleSectionsData,)
+		});
+
+		it("should correctly group and calculate averages", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["sections_title", "overallAvg"],
+					ORDER: { dir: "DOWN", keys: ["overallAvg"] }
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["sections_title"],
+					APPLY: [{ overallAvg: { AVG: "sections_avg" } }]
+				}
+			};
+
+			const results = await insightFacade.performQuery(query);
+			console.log(results);
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expectedAvg310 = 87.5; // (90 + 80 + 95 + 85) / 4
+			const expectedAvg210 = 77.25; // (74 + 78 + 72 + 85) / 4
+			const tolerance = 0.01;
+
+			if (group310) {
+				expect(group310.overallAvg).to.be.closeTo(expectedAvg310, tolerance);
+			}
+			if (group210) {
+				expect(group210.overallAvg).to.be.closeTo(expectedAvg210, tolerance);
+			}
+		});
+	});
+
 
 	describe("Data Persistence and Transformation", () => {
 		let facade2: InsightFacade;

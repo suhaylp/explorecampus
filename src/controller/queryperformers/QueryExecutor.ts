@@ -13,6 +13,8 @@ export class QueryExecutor {
 			throw new ResultTooLargeError("Query result exceeds limit of 5000 records");
 		}
 
+
+
 		let processedData = filtered;
 		if ("TRANSFORMATIONS" in query) {
 			const { GROUP, APPLY } = query.TRANSFORMATIONS;
