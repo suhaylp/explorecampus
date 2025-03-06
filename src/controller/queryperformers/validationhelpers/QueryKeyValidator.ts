@@ -45,9 +45,14 @@ export function validateSKey(skey: string, datasetKind: "rooms" | "sections"): v
 	}
 	const [id, sfield] = parts;
 	validateIdString(id);
-	if (id !== datasetKind) {
-		throw new InsightError(`Invalid SKey: "${skey}". The dataset id must be "${datasetKind}".`);
-	}
+	// if (id !== datasetKind) {
+	// 	throw new InsightError(`Invalid SKey: "${skey}". The dataset id must be "${datasetKind}".`);
+	// }
+
+	// skey_sfield
+	// skey -> what is the kind? -> is sfield appropriate
+	// dataset, id: sec, kind: sections
+	// validateSkey(sec_avg, sections)
 	validateSField(sfield, datasetKind);
 }
 
@@ -61,9 +66,9 @@ export function validateMKey(mkey: string, datasetKind: "rooms" | "sections"): v
 	}
 	const [id, mfield] = parts;
 	validateIdString(id);
-	if (id !== datasetKind) {
-		throw new InsightError(`Invalid MKey: "${mkey}". The dataset id must be "${datasetKind}".`);
-	}
+	// if (id !== datasetKind) {
+	// 	throw new InsightError(`Invalid MKey: "${mkey}". The dataset id must be "${datasetKind}".`);
+	// }
 	validateMField(mfield, datasetKind);
 }
 

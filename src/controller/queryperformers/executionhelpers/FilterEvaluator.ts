@@ -97,6 +97,12 @@ export class FilterEvaluator {
 		const targetString = operand[key];
 		const recordString = record[key];
 		if (typeof recordString !== "string") {
+			// REMOVE LATER
+			// COME BACK
+			console.log(subKeys)
+			console.log(key)
+			console.log(record)
+			console.log(recordString)
 			throw new InsightError(`Record value for ${key} is not a string`);
 		}
 		return this.evaluateStringComparison(recordString, targetString);
