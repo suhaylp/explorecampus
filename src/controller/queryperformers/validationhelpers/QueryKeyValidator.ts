@@ -1,3 +1,4 @@
+import {InsightError} from "../../IInsightFacade";
 
 export type SKey = string;
 export type MKey = string;
@@ -13,51 +14,56 @@ const allowedRoomsMFields: string[] = ["lat", "lon", "seats"];
 export function validateSField(sfield: string, datasetKind: "sections" | "rooms"): void {
 	const allowed = datasetKind === "rooms" ? allowedRoomsSFields : allowedSectionsSFields;
 	if (!allowed.includes(sfield)) {
-		throw new Error(`Invalid SField: "${sfield}". Allowed values for ${datasetKind} are: ${allowed.join(", ")}`);
+		throw new InsightError(`Invalid SField: "${sfield}". Allowed values for ${datasetKind} are: ${allowed.join(", ")}`);
 	}
 }
 
 export function validateMField(mfield: string, datasetKind: "sections" | "rooms"): void {
 	const allowed = datasetKind === "rooms" ? allowedRoomsMFields : allowedSectionsMFields;
 	if (!allowed.includes(mfield)) {
-		throw new Error(`Invalid MField: "${mfield}". Allowed values for ${datasetKind} are: ${allowed.join(", ")}`);
+		throw new InsightError(`Invalid MField: "${mfield}". Allowed values for ${datasetKind} are: ${allowed.join(", ")}`);
 	}
 }
 
 export function validateIdString(id: string): void {
 	const trimmed = id.trim();
 	if (trimmed.length === 0) {
-		throw new Error("Invalid id: cannot be empty or whitespace");
+		throw new InsightError("Invalid id: cannot be empty or whitespace");
 	}
 	if (trimmed.includes("_")) {
-		throw new Error(`Invalid id: "${id}" must not contain underscores`);
+		throw new InsightError(`Invalid id: "${id}" must not contain underscores`);
 	}
 }
 
-export function validateSKey(skey: SKey): void {
+export function validateSKey(skey: string, datasetKind: "rooms" | "sections"): void {
 	if (typeof skey !== "string") {
-		throw new Error("SKey must be a string");
+		throw new InsightError("SKey must be a string");
 	}
 	const parts = skey.split("_");
 	if (parts.length !== 2) {
-		throw new Error(`Invalid SKey: "${skey}". It must have exactly one underscore separating the id and field.`);
+		throw new InsightError(`Invalid SKey: "${skey}". It must have exactly one underscore.`);
 	}
 	const [id, sfield] = parts;
 	validateIdString(id);
-	const datasetKind: "rooms" | "sections" = id === "rooms" ? "rooms" : "sections";
+	if (id !== datasetKind) {
+		throw new InsightError(`Invalid SKey: "${skey}". The dataset id must be "${datasetKind}".`);
+	}
 	validateSField(sfield, datasetKind);
 }
 
-export function validateMKey(mkey: MKey): void {
+export function validateMKey(mkey: string, datasetKind: "rooms" | "sections"): void {
 	if (typeof mkey !== "string") {
-		throw new Error("MKey must be a string");
+		throw new InsightError("MKey must be a string");
 	}
 	const parts = mkey.split("_");
 	if (parts.length !== 2) {
-		throw new Error(`Invalid MKey: "${mkey}". It must have exactly one underscore separating the id and field.`);
+		throw new InsightError(`Invalid MKey: "${mkey}". It must have exactly one underscore.`);
 	}
 	const [id, mfield] = parts;
 	validateIdString(id);
-	const datasetKind: "rooms" | "sections" = id === "rooms" ? "rooms" : "sections";
+	if (id !== datasetKind) {
+		throw new InsightError(`Invalid MKey: "${mkey}". The dataset id must be "${datasetKind}".`);
+	}
 	validateMField(mfield, datasetKind);
 }
+

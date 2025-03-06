@@ -645,7 +645,7 @@ describe("InsightFacade", function () {
 					ORDER: "rooms_seats",
 				},
 			};
-			expect(() => QueryValidator.validateQuery(query)).to.not.throw();
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.not.throw();
 		});
 
 		it("should validate a query with valid TRANSFORMATIONS", () => {
@@ -660,7 +660,7 @@ describe("InsightFacade", function () {
 					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
 				},
 			};
-			expect(() => QueryValidator.validateQuery(query)).to.not.throw();
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.not.throw();
 		});
 
 		it("should reject a query with TRANSFORMATIONS if a column is not in GROUP or APPLY", () => {
@@ -675,7 +675,7 @@ describe("InsightFacade", function () {
 					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
 				},
 			};
-			expect(() => QueryValidator.validateQuery(query)).to.throw(InsightError, /rooms_seats/);
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.throw(InsightError, /rooms_seats/);
 		});
 	});
 
@@ -776,6 +776,7 @@ describe("InsightFacade", function () {
 		});
 	});
 
+	// QueryKeyValidator - Rooms
 	describe("QueryKeyValidator - Rooms", () => {
 		it("should accept valid rooms SFields", () => {
 			expect(() => validateSField("fullname", "rooms")).to.not.throw();
@@ -804,20 +805,46 @@ describe("InsightFacade", function () {
 		});
 	});
 
-	describe("QueryKeyValidator - Inferred Dataset Kind", () => {
-		it("should infer 'rooms' for keys with id 'rooms'", () => {
-			expect(() => validateSKey("rooms_fullname")).to.not.throw();
-			expect(() => validateMKey("rooms_seats")).to.not.throw();
+	// Tests for a Rooms dataset
+	describe("QueryKeyValidator - Rooms", () => {
+		it("should accept a valid string key for Rooms", () => {
+			// Pass "rooms" explicitly as the dataset kind.
+			expect(() => validateSKey("rooms_fullname", "rooms")).to.not.throw(InsightError);
 		});
 
-		it("should infer 'sections' for keys with any other id", () => {
-			expect(() => validateSKey("sections_dept")).to.not.throw();
-			expect(() => validateMKey("sections_avg")).to.not.throw();
+		it("should reject a string key with a wrong prefix for Rooms", () => {
+			expect(() => validateSKey("sections_fullname", "rooms")).to.throw(InsightError);
+			expect(() => validateSKey("fullname", "rooms")).to.throw(InsightError);
 		});
 
-		it("should reject keys with invalid fields based on inferred dataset kind", () => {
-			expect(() => validateSKey("sections_fullname")).to.throw();
-			expect(() => validateMKey("rooms_avg")).to.throw();
+		it("should accept a valid mkey for Rooms", () => {
+			expect(() => validateMKey("rooms_seats", "rooms")).to.not.throw(InsightError);
+		});
+
+		it("should reject a mkey with a wrong prefix for Rooms", () => {
+			expect(() => validateMKey("sections_avg", "rooms")).to.throw(InsightError);
+			expect(() => validateMKey("avg", "rooms")).to.throw(InsightError);
+		});
+	});
+
+	// Tests for a Sections dataset
+	describe("QueryKeyValidator - Sections", () => {
+		it("should accept a valid string key for Sections", () => {
+			expect(() => validateSKey("sections_dept", "sections")).to.not.throw(InsightError);
+		});
+
+		it("should reject a string key with a wrong prefix for Sections", () => {
+			expect(() => validateSKey("rooms_dept", "sections")).to.throw(InsightError);
+			expect(() => validateSKey("dept", "sections")).to.throw(InsightError);
+		});
+
+		it("should accept a valid mkey for Sections", () => {
+			expect(() => validateMKey("sections_avg", "sections")).to.not.throw(InsightError);
+		});
+
+		it("should reject a mkey with a wrong prefix for Sections", () => {
+			expect(() => validateMKey("rooms_avg", "sections")).to.throw(InsightError);
+			expect(() => validateMKey("avg", "sections")).to.throw(InsightError);
 		});
 	});
 

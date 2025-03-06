@@ -191,15 +191,15 @@ export default class InsightFacade implements IInsightFacade {
 				if (typeof query !== "object" || query === null) {
 					throw new InsightError("Query must be a non-null object");
 				}
-				const records = this.getRecordsFromQuery(query);
-				resolve(QueryEngine.runQuery(query, records));
+				const { dataset, records } = this.getRecordsFromQuery(query);
+				resolve(QueryEngine.runQuery(query, dataset, records));
 			} catch (err) {
 				reject(err);
 			}
 		});
 	}
 
-	private getRecordsFromQuery(query: any): Record<string, any>[] {
+	private getRecordsFromQuery(query: any): { dataset: Record<string, any>; records: Record<string, any>[] } {
 		if (!query.OPTIONS || !Array.isArray(query.OPTIONS.COLUMNS) || query.OPTIONS.COLUMNS.length === 0) {
 			throw new InsightError("OPTIONS.COLUMNS is missing or empty");
 		}
@@ -215,9 +215,11 @@ export default class InsightFacade implements IInsightFacade {
 			throw new InsightError(`Dataset ${datasetId} not found`);
 		}
 		const dataset = this.datasets.get(datasetId)!;
-		return dataset.meta.kind === InsightDatasetKind.Rooms
-			? (dataset.data as RoomData[])
-			: this.transformDataset(datasetId, dataset.data as Section[]);
+		const records =
+			dataset.meta.kind === InsightDatasetKind.Rooms
+				? (dataset.data as RoomData[])
+				: this.transformDataset(datasetId, dataset.data as Section[]);
+		return { dataset, records };
 	}
 
 	private transformDataset(datasetId: string, data: Section[]): Record<string, any>[] {
