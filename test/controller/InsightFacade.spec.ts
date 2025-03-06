@@ -1394,4 +1394,38 @@ describe("InsightFacade", function () {
 			await expect(facade.performQuery(invalidQuery)).to.be.rejectedWith(InsightError);
 		});
 	});
+
+	describe("Data Persistence and Transformation", () => {
+		let facade2: InsightFacade;
+		const persistenceDatasetId = "persistTest";
+		let initialContent: string;
+		before(async () => {
+			await clearDisk();
+			initialContent = await getContentFromArchives("singleCourse.zip");
+			facade2 = new InsightFacade();
+			await facade2.addDataset(persistenceDatasetId, initialContent, InsightDatasetKind.Sections);
+		});
+
+		it("should correctly load and transform persisted dataset", async () => {
+			const newFacade = new InsightFacade();
+			// Wait a bit for newFacade to initialize and load persisted data.
+			await new Promise((resolve) => setTimeout(resolve, 100));
+			const datasets = await newFacade.listDatasets();
+			const dsMeta = datasets.find((d) => d.id === persistenceDatasetId);
+			expect(dsMeta).to.not.be.undefined;
+			// Perform a query to ensure transformation occurs.
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: [`${persistenceDatasetId}_dept`],
+				},
+			};
+			const queryResult = await newFacade.performQuery(query);
+			// Check that transformation produced valid output.
+			expect(queryResult).to.be.an("array").that.is.not.empty;
+			queryResult.forEach((record: any) => {
+				expect(record[`${persistenceDatasetId}_dept`]).to.be.a("string");
+			});
+		});
+	});
 });
