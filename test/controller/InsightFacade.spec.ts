@@ -109,7 +109,7 @@ describe("InsightFacade", function () {
 			// const timo = 10000;
 			// this.timeout(timo);
 			try {
-				await clearDisk();
+				// await clearDisk();
 				const roomsData = await getContentFromArchives("campus.zip");
 				await facade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
 			} catch (err) {
@@ -1057,6 +1057,11 @@ describe("InsightFacade", function () {
 			);
 		});
 
+		it("should accept valid rooms", async function () {
+			const roomsData = await getContentFromArchives("campus.zip");
+			await expect(facade.addDataset("roomsID", roomsData, InsightDatasetKind.Rooms)).to.eventually.include("roomsID");
+		});
+
 		it("should reject with  an empty dataset id 2", async function () {
 			// Read the "Free Mutant Walkthrough" in the spec for tips on how to get started!
 			try {
@@ -1462,7 +1467,18 @@ describe("InsightFacade", function () {
 
 		it("[sectionsInvalid/invalidKeyId.json] invalidKeyId", checkQuery);
 		it("[sectionsInvalid/invalidKeyColumns.json] invalidKeyColumns", checkQuery);
-		it("[sectionsInvalid/transIdCheck.json] invalidKeyColumns", checkQuery);
+		it("[sectionsInvalid/transIdCheck.json] transIdCheck", checkQuery);
+		it("[sectionsInvalid/invalidKeyCol.json] invalidKeyCol", checkQuery);
+		it("[sectionsInvalid/invalidKeyGroup.json] invalidKeyGroup", checkQuery);
+		it("[sectionsInvalid/twoDataLT.json] twoDataLT", checkQuery);
+		it("[sectionsInvalid/twoDatasets.json] twoDatasets", checkQuery);
+		it("[sectionsInvalid/twoDatasetsAND.json] twoDatasetsAND", checkQuery);
+		it("[sectionsInvalid/twoDatasetsNested.json] twoDatasetsNested", checkQuery);
+		it("[sectionsInvalid/twoDatasetsOR.json] twoDatasetsOR", checkQuery);
+		it("[sectionsInvalid/twoKeyApply.json] twoKeyApply", checkQuery);
+		it("[sectionsInvalid/underscoreAppKey.json] underscoreAppKey", checkQuery);
+		it("[sectionsInvalid/badDatasetTrans.json] badDatasetTrans", checkQuery);
+		it("[sectionsInvalid/badDatasetTrans2.json] badDatasetTrans2", checkQuery);
 
 		it("[valid/simple.json] SELECT dept, avg WHERE avg > 97", checkQuery);
 		it("[valid/both_ends_wc.json] wc text wc", checkQuery);

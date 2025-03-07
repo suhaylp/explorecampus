@@ -11,20 +11,27 @@ function getAllowedFields(datasetKind: "rooms" | "sections"): string[] {
 function getValidOps(): string[] {
 	return ["MAX", "MIN", "AVG", "SUM", "COUNT"];
 }
-
 function validateApplyRule(rule: any, allowed: string[], validOps: string[], applyKeySet: Set<string>): void {
 	if (!isObject(rule)) throw new InsightError("Each APPLY rule must be an object");
 	const ruleKeys = Object.keys(rule);
 	if (ruleKeys.length !== 1) throw new InsightError("Each APPLY rule must have exactly one key");
 	const key = ruleKeys[0];
+
+	// Ensure the applyKey does not contain an underscore.
+	if (key.includes("_")) {
+		throw new InsightError("APPLY key cannot contain underscores");
+	}
+
 	if (applyKeySet.has(key)) throw new InsightError(`Duplicate APPLY key: ${key}`);
 	applyKeySet.add(key);
+
 	const opObj = rule[key];
 	if (!isObject(opObj)) throw new InsightError("Each APPLY rule's value must be an object");
 	const opKeys = Object.keys(opObj);
 	if (opKeys.length !== 1 || !validOps.includes(opKeys[0])) {
 		throw new InsightError("Each APPLY rule must have exactly one operator: MAX, MIN, AVG, SUM, or COUNT");
 	}
+
 	if (["MAX", "MIN", "AVG", "SUM"].includes(opKeys[0])) {
 		const parts = opObj[opKeys[0]].split("_");
 		if (parts.length !== 2 || !allowed.includes(parts[1])) {
