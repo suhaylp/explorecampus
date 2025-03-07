@@ -1,0 +1,39 @@
+{
+	"title": "noApply",
+	"input": {
+		"WHERE": {
+			"AND": [
+				{
+					"IS": {
+						"rooms_furniture": "*Tables*"
+					}
+				},
+				{
+					"LT": {
+						"rooms_seats": 300
+					}
+				}
+			]
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"rooms_fullname",
+				"rooms_number"
+			],
+			"ORDER": {
+				"dir": "DOWN",
+				"keys": [
+					"rooms_number"
+				]
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"rooms_fullname",
+				"rooms_number"
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

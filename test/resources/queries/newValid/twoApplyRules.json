@@ -1,0 +1,107 @@
+{
+	"title": "twoApplyRules",
+	"input": {
+		"WHERE": {
+			"AND": [
+				{
+					"IS": {
+						"rooms_furniture": "*Tables*"
+					}
+				},
+				{
+					"LT": {
+						"rooms_seats": 20
+					}
+				}
+			]
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"rooms_shortname",
+				"maxSeats",
+				"minSeats"
+			],
+			"ORDER": {
+				"dir": "DOWN",
+				"keys": [
+					"minSeats"
+				]
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"rooms_shortname"
+			],
+			"APPLY": [
+				{
+					"maxSeats": {
+						"MAX": "rooms_seats"
+					}
+				},
+				{
+					"minSeats": {
+						"MIN": "rooms_seats"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": false,
+	"expected": [
+		{
+			"rooms_shortname": "BUCH",
+			"maxSeats": 18,
+			"minSeats": 18
+		},
+		{
+			"rooms_shortname": "FSC",
+			"maxSeats": 18,
+			"minSeats": 18
+		},
+		{
+			"rooms_shortname": "BIOL",
+			"maxSeats": 16,
+			"minSeats": 16
+		},
+		{
+			"rooms_shortname": "ANGU",
+			"maxSeats": 16,
+			"minSeats": 16
+		},
+		{
+			"rooms_shortname": "ORCH",
+			"maxSeats": 16,
+			"minSeats": 16
+		},
+		{
+			"rooms_shortname": "SOWK",
+			"maxSeats": 16,
+			"minSeats": 12
+		},
+		{
+			"rooms_shortname": "SPPH",
+			"maxSeats": 16,
+			"minSeats": 12
+		},
+		{
+			"rooms_shortname": "WOOD",
+			"maxSeats": 16,
+			"minSeats": 10
+		},
+		{
+			"rooms_shortname": "IBLC",
+			"maxSeats": 16,
+			"minSeats": 8
+		},
+		{
+			"rooms_shortname": "PHRM",
+			"maxSeats": 14,
+			"minSeats": 7
+		},
+		{
+			"rooms_shortname": "MCML",
+			"maxSeats": 8,
+			"minSeats": 6
+		}
+	]
+}

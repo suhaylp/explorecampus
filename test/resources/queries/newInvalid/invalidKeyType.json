@@ -1,0 +1,32 @@
+{
+	"title": "invalidKeyType",
+	"input": {
+		"WHERE": {},
+		"OPTIONS": {
+			"COLUMNS": [
+				"rooms_shortname",
+				"minSeats"
+			],
+			"ORDER": {
+				"dir": "UP",
+				"keys": [
+					"minSeats"
+				]
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"rooms_shortname"
+			],
+			"APPLY": [
+				{
+					"minSeats": {
+						"MIN": "rooms_furniture"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

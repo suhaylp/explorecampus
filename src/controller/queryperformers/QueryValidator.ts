@@ -21,7 +21,7 @@ export class QueryValidator {
 		WhereValidator.validateWhere(query.WHERE, datasetKind);
 
 		if ("TRANSFORMATIONS" in query) {
-			TransformationsValidator.validateTransformations(query.TRANSFORMATIONS);
+			TransformationsValidator.validateTransformations(query.TRANSFORMATIONS, datasetKind);
 			TransformationsValidator.validateColumns(query.OPTIONS.COLUMNS, query.TRANSFORMATIONS);
 		}
 

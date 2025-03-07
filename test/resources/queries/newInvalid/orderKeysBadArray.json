@@ -1,0 +1,36 @@
+{
+	"title": "OrderKeysBadArray",
+	"input": {
+		"WHERE": {},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_title",
+				"overallAvg",
+				"uniqueInst"
+			],
+			"ORDER": {
+				"dir": "DOWN",
+				"keys": "overallAvg"
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"sections_title"
+			],
+			"APPLY": [
+				{
+					"overallAvg": {
+						"AVG": "sections_avg"
+					}
+				},
+				{
+					"uniqueInst": {
+						"COUNT": "sections_instructor"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}
