@@ -1,0 +1,209 @@
+{
+	"title": "filteredCountQuery",
+	"input": {
+		"WHERE": {},
+		"OPTIONS": {
+			"COLUMNS": [
+				"rooms_shortname",
+				"roomCount"
+			],
+			"ORDER": {
+				"dir": "DOWN",
+				"keys": [
+					"roomCount"
+				]
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"rooms_shortname"
+			],
+			"APPLY": [
+				{
+					"roomCount": {
+						"COUNT": "rooms_type"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": false,
+	"expected": [
+		{
+			"rooms_shortname": "ANGU",
+			"roomCount": 5
+		},
+		{
+			"rooms_shortname": "BUCH",
+			"roomCount": 4
+		},
+		{
+			"rooms_shortname": "LASR",
+			"roomCount": 4
+		},
+		{
+			"rooms_shortname": "IBLC",
+			"roomCount": 4
+		},
+		{
+			"rooms_shortname": "MCML",
+			"roomCount": 4
+		},
+		{
+			"rooms_shortname": "CEME",
+			"roomCount": 3
+		},
+		{
+			"rooms_shortname": "FNH",
+			"roomCount": 3
+		},
+		{
+			"rooms_shortname": "FSC",
+			"roomCount": 3
+		},
+		{
+			"rooms_shortname": "GEOG",
+			"roomCount": 3
+		},
+		{
+			"rooms_shortname": "MCLD",
+			"roomCount": 3
+		},
+		{
+			"rooms_shortname": "MATH",
+			"roomCount": 3
+		},
+		{
+			"rooms_shortname": "ORCH",
+			"roomCount": 3
+		},
+		{
+			"rooms_shortname": "PHRM",
+			"roomCount": 3
+		},
+		{
+			"rooms_shortname": "UCLL",
+			"roomCount": 3
+		},
+		{
+			"rooms_shortname": "SWNG",
+			"roomCount": 3
+		},
+		{
+			"rooms_shortname": "ALRD",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "ANSO",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "BIOL",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "BRKX",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "CHBE",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "FORW",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "HEBB",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "HENN",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "DMP",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "IONA",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "SOWK",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "LSK",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "SCRF",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "PCOH",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "OSBO",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "SPPH",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "WOOD",
+			"roomCount": 2
+		},
+		{
+			"rooms_shortname": "AERL",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "AUDX",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "CIRS",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "CHEM",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "EOSM",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "ESB",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "FRDM",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "LSC",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "MATX",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "SRC",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "MGYM",
+			"roomCount": 1
+		},
+		{
+			"rooms_shortname": "WESB",
+			"roomCount": 1
+		}
+	]
+}

@@ -1,0 +1,167 @@
+{
+	"title": "complex1",
+	"input": {
+		"WHERE": {
+			"AND": [
+				{
+					"GT": {
+						"rooms_seats": 100
+					}
+				},
+				{
+					"IS": {
+						"rooms_furniture": "*Tables*"
+					}
+				},
+				{
+					"OR": [
+						{
+							"LT": {
+								"rooms_seats": 300
+							}
+						},
+						{
+							"NOT": {
+								"IS": {
+									"rooms_type": "Lecture Hall"
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"rooms_shortname",
+				"rooms_type",
+				"avgSeats",
+				"minSeats"
+			],
+			"ORDER": {
+				"dir": "DOWN",
+				"keys": [
+					"avgSeats",
+					"minSeats"
+				]
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"rooms_shortname",
+				"rooms_type"
+			],
+			"APPLY": [
+				{
+					"avgSeats": {
+						"AVG": "rooms_seats"
+					}
+				},
+				{
+					"minSeats": {
+						"MIN": "rooms_seats"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": false,
+	"expected": [
+		{
+			"rooms_shortname": "OSBO",
+			"rooms_type": "Open Design General Purpose",
+			"avgSeats": 442,
+			"minSeats": 442
+		},
+		{
+			"rooms_shortname": "HEBB",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 375,
+			"minSeats": 375
+		},
+		{
+			"rooms_shortname": "SRC",
+			"rooms_type": "TBD",
+			"avgSeats": 299,
+			"minSeats": 299
+		},
+		{
+			"rooms_shortname": "LSC",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 275,
+			"minSeats": 125
+		},
+		{
+			"rooms_shortname": "ANGU",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 260,
+			"minSeats": 260
+		},
+		{
+			"rooms_shortname": "PHRM",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 201.5,
+			"minSeats": 167
+		},
+		{
+			"rooms_shortname": "CHBE",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 200,
+			"minSeats": 200
+		},
+		{
+			"rooms_shortname": "LSK",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 194,
+			"minSeats": 183
+		},
+		{
+			"rooms_shortname": "SWNG",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 188.75,
+			"minSeats": 187
+		},
+		{
+			"rooms_shortname": "FRDM",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 160,
+			"minSeats": 160
+		},
+		{
+			"rooms_shortname": "IBLC",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 154,
+			"minSeats": 154
+		},
+		{
+			"rooms_shortname": "DMP",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 140,
+			"minSeats": 120
+		},
+		{
+			"rooms_shortname": "MCLD",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 129.5,
+			"minSeats": 123
+		},
+		{
+			"rooms_shortname": "WOOD",
+			"rooms_type": "Tiered Large Group",
+			"avgSeats": 120,
+			"minSeats": 120
+		},
+		{
+			"rooms_shortname": "IBLC",
+			"rooms_type": "Open Design General Purpose",
+			"avgSeats": 112,
+			"minSeats": 112
+		},
+		{
+			"rooms_shortname": "BUCH",
+			"rooms_type": "Case Style",
+			"avgSeats": 108,
+			"minSeats": 108
+		}
+	]
+}
