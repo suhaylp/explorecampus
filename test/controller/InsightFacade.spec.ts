@@ -15,10 +15,8 @@ import fs from "fs-extra";
 import path from "path";
 import JSZip from "jszip";
 
-// import { expect } from "chai";
 import { parseBuildingHtml } from "../../src/controller/dataset/BuildingParserUtils";
 import { QueryValidator } from "../../src/controller/queryperformers/QueryValidator";
-// import { InsightDatasetKind, InsightError } from "../../src/controller/IInsightFacade";
 import { performTransformations } from "../../src/controller/queryperformers/executionhelpers/TransformationsProcessor";
 import { OrderEvaluator } from "../../src/controller/queryperformers/executionhelpers/OrderEvaluator";
 
@@ -32,8 +30,6 @@ import InsightFacade from "../../src/controller/InsightFacade";
 import { parseIndexHtml } from "../../src/controller/dataset/IndexParserUtils";
 import { BuildingData } from "../../src/controller/dataset/IndexParserUtils";
 import { TransformationsValidator } from "../../src/controller/queryperformers/validationhelpers/QueryTransformationsValidator";
-// import {QueryExecutor} from "../../src/controller/queryperformers/QueryExecutor";
-// import {QueryEngine} from "../../src/controller/queryperformers/QueryEngine";
 
 use(chaiAsPromised);
 
@@ -58,6 +54,94 @@ describe("InsightFacade", function () {
 		// Just in case there is anything hanging around from a previous run of the test suite
 		await clearDisk();
 	});
+
+
+	describe("New PerformQuery", function () {
+
+		/**
+		 * Loads the TestQuery specified in the test name and asserts the behaviour of performQuery.
+		 *
+		 * Note: the 'this' parameter is automatically set by Mocha and contains information about the test.
+		 */
+		async function checkQuery(this: Mocha.Context): Promise<void> {
+			if (!this.test) {
+				throw new Error(
+					"Invalid call to checkQuery." +
+					"Usage: 'checkQuery' must be passed as the second parameter of Mocha's it(..) function." +
+					"Do not invoke the function directly."
+				);
+			}
+			// Destructuring assignment to reduce property accesses
+			const { input, expected, errorExpected } = await loadTestQuery(this.test.title);
+			// COMMENTED OUT
+			let result: InsightResult[] = []; // dummy value before being reassigned
+			try {
+				result = await facade.performQuery(input);
+			} catch (err) {
+				if (!errorExpected) {
+					// errorExpected is false, expected is a result of tuples
+					expect.fail(`performQuery threw unexpected error: ${err}`);
+				}
+
+				if (expected === "ResultTooLargeError") {
+					expect(err).to.be.instanceof(ResultTooLargeError);
+				} else if (expected === "InsightError") {
+					expect(err).to.be.instanceof(InsightError);
+				}
+				// expect(err).to.be.instanceOf(expected);
+				return; // optional?
+			}
+
+			// expected an error but did not catch
+			if (errorExpected) {
+				// errorExpected is true, expect is error
+				expect.fail(`performQuery resolved when it should have rejected with ${expected}`);
+			}
+
+			expect(result).to.have.deep.members(expected);
+			return; // optional?
+		}
+
+		before(async function () {
+			await clearDisk();
+			facade = new InsightFacade();
+
+			// const timo = 10000;
+			// this.timeout(timo);
+			try {
+				await clearDisk();
+				console.log("clearDisk succeeded");
+				const roomsData = await getContentFromArchives("campus.zip");
+				console.log("Loaded rooms data");
+				await facade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
+				console.log("Dataset added successfully");
+			} catch (err) {
+				console.error("Error in inner before hook:", err);
+				throw err;
+			}
+		});
+
+		after(async function () {
+			await clearDisk();
+		});
+
+		// beforeEach(async function (){
+		// 	facade = new InsightFacade();
+		// });
+
+		it("[newValid/minQuery.json] Min Operation Query", checkQuery);
+		it("[newValid/avgQuery.json] Avg Operation Query", checkQuery);
+		it("[newValid/sumQuery.json] Sum Operation Query", checkQuery);
+		it("[newValid/countQuery.json] Count Operation Query", checkQuery);
+		it("[newValid/filteredCountQuery.json] Filtered Count Operation Query", checkQuery);
+		it("[newValid/complex1.json] Complex 1", checkQuery);
+	});
+
+
+
+
+
+	// BELOW THIS LINE ARE OLD ACQUIRING TESTS
 
 	describe("OrderEvaluator.order", () => {
 		const records = [
@@ -407,128 +491,128 @@ describe("InsightFacade", function () {
 		});
 	});
 
-	describe("InsightFacade.performQuery Integration Test (Rooms Query)", function () {
-		const timo = 10000;
-		this.timeout(timo);
-		let insightFacade: InsightFacade;
-		let roomsData: string;
-
-		before(async () => {
-			await clearDisk();
-			insightFacade = new InsightFacade();
-			// Dummy dataset for rooms.
-			// Only records with more than 300 seats and furniture containing "Tables" will qualify.
-			const dummyRooms = [
-				{ rooms_shortname: "OSBO", rooms_seats: 442, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
-				{ rooms_shortname: "OSBO", rooms_seats: 400, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
-				{ rooms_shortname: "OSBO", rooms_seats: 300, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" }, // Fails GT condition
-				{ rooms_shortname: "OSBO", rooms_seats: 450, rooms_furniture: "Chairs", rooms_address: "Addr1" }, // Fails IS condition
-				{ rooms_shortname: "HEBB", rooms_seats: 375, rooms_furniture: "Large Tables", rooms_address: "Addr2" },
-				{ rooms_shortname: "LSC", rooms_seats: 350, rooms_furniture: "Tables", rooms_address: "Addr3" },
-			];
-
-			// We want only OSBO, HEBB, and LSC groups.
-			const dummyDataset = {
-				meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: dummyRooms.length },
-				data: dummyRooms,
-			};
-
-			// Inject the dummy dataset into InsightFacade's datasets map.
-			// (Using a type assertion to access the private field.)
-			(insightFacade as any).datasets.set("rooms", dummyDataset);
-			roomsData = await getContentFromArchives("campus.zip");
-			await insightFacade.addDataset("rooms2", roomsData, InsightDatasetKind.Rooms);
-			//await insightFacade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
-			//console.log(roomsData)
-		});
-
-		// it("should perform the rooms query and return correct results", async () => {
-		// 	const query = {
-		// 		WHERE: {
-		// 			AND: [{ IS: { rooms_furniture: "*Tables*" } }, { GT: { rooms_seats: 300 } }],
-		// 		},
-		// 		OPTIONS: {
-		// 			COLUMNS: ["rooms_shortname", "maxSeats"],
-		// 			ORDER: { dir: "DOWN", keys: ["maxSeats"] },
-		// 		},
-		// 		TRANSFORMATIONS: {
-		// 			GROUP: ["rooms_shortname"],
-		// 			APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
-		// 		},
-		// 	};
-		//
-		// 	const results = await insightFacade.performQuery(query);
-		// 	// We expect three groups: OSBO, HEBB, and LSC.
-		// 	const three = 3;
-		// 	expect(results).to.be.an("array").with.lengthOf(three);
-		//
-		// 	// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
-		// 	expect(results[0].rooms_shortname).to.equal("OSBO");
-		// 	const num1 = 442;
-		// 	expect(results[0].maxSeats).to.equal(num1);
-		// 	expect(results[1].rooms_shortname).to.equal("HEBB");
-		// 	const num2 = 375;
-		// 	expect(results[1].maxSeats).to.equal(num2);
-		// 	expect(results[2].rooms_shortname).to.equal("LSC");
-		// 	const num3 = 350;
-		// 	expect(results[2].maxSeats).to.equal(num3);
-		// });
-
-		it("using addedDataset: should perform the rooms query and return correct results", async () => {
-			const isf = new InsightFacade();
-
-			const query = {
-				WHERE: {
-					AND: [
-						{
-							IS: {
-								rooms2_furniture: "*Tables*",
-							},
-						},
-						{
-							GT: {
-								rooms2_seats: 300,
-							},
-						},
-					],
-				},
-				OPTIONS: {
-					COLUMNS: ["rooms2_shortname", "maxSeats"],
-					ORDER: {
-						dir: "DOWN",
-						keys: ["maxSeats"],
-					},
-				},
-				TRANSFORMATIONS: {
-					GROUP: ["rooms2_shortname"],
-					APPLY: [
-						{
-							maxSeats: {
-								MAX: "rooms2_seats",
-							},
-						},
-					],
-				},
-			};
-
-			const results = await isf.performQuery(query);
-			// We expect three groups: OSBO, HEBB, and LSC.
-			const three = 3;
-			expect(results).to.be.an("array").with.lengthOf(three);
-
-			// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
-			expect(results[0].rooms2_shortname).to.equal("OSBO");
-
-			const num1 = 442;
-			expect(results[0].maxSeats).to.equal(num1);
-			expect(results[1].rooms2_shortname).to.equal("HEBB");
-			const num2 = 375;
-			expect(results[1].maxSeats).to.equal(num2);
-			expect(results[2].rooms2_shortname).to.equal("LSC");
-			const num3 = 350;
-			expect(results[2].maxSeats).to.equal(num3);
-		});
-	});
+	// describe("InsightFacade.performQuery Integration Test (Rooms Query)", function () {
+	// 	const timo = 10000;
+	// 	this.timeout(timo);
+	// 	let insightFacade: InsightFacade;
+	// 	let roomsData: string;
+	//
+	// 	before(async () => {
+	// 		await clearDisk();
+	// 		insightFacade = new InsightFacade();
+	// 		// Dummy dataset for rooms.
+	// 		// Only records with more than 300 seats and furniture containing "Tables" will qualify.
+	// 		const dummyRooms = [
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 442, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 400, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 300, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" }, // Fails GT condition
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 450, rooms_furniture: "Chairs", rooms_address: "Addr1" }, // Fails IS condition
+	// 			{ rooms_shortname: "HEBB", rooms_seats: 375, rooms_furniture: "Large Tables", rooms_address: "Addr2" },
+	// 			{ rooms_shortname: "LSC", rooms_seats: 350, rooms_furniture: "Tables", rooms_address: "Addr3" },
+	// 		];
+	//
+	// 		// We want only OSBO, HEBB, and LSC groups.
+	// 		const dummyDataset = {
+	// 			meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: dummyRooms.length },
+	// 			data: dummyRooms,
+	// 		};
+	//
+	// 		// Inject the dummy dataset into InsightFacade's datasets map.
+	// 		// (Using a type assertion to access the private field.)
+	// 		(insightFacade as any).datasets.set("rooms", dummyDataset);
+	// 		roomsData = await getContentFromArchives("campus.zip");
+	// 		await insightFacade.addDataset("rooms2", roomsData, InsightDatasetKind.Rooms);
+	// 		//await insightFacade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
+	// 		//console.log(roomsData)
+	// 	});
+	//
+	// 	// it("should perform the rooms query and return correct results", async () => {
+	// 	// 	const query = {
+	// 	// 		WHERE: {
+	// 	// 			AND: [{ IS: { rooms_furniture: "*Tables*" } }, { GT: { rooms_seats: 300 } }],
+	// 	// 		},
+	// 	// 		OPTIONS: {
+	// 	// 			COLUMNS: ["rooms_shortname", "maxSeats"],
+	// 	// 			ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+	// 	// 		},
+	// 	// 		TRANSFORMATIONS: {
+	// 	// 			GROUP: ["rooms_shortname"],
+	// 	// 			APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+	// 	// 		},
+	// 	// 	};
+	// 	//
+	// 	// 	const results = await insightFacade.performQuery(query);
+	// 	// 	// We expect three groups: OSBO, HEBB, and LSC.
+	// 	// 	const three = 3;
+	// 	// 	expect(results).to.be.an("array").with.lengthOf(three);
+	// 	//
+	// 	// 	// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+	// 	// 	expect(results[0].rooms_shortname).to.equal("OSBO");
+	// 	// 	const num1 = 442;
+	// 	// 	expect(results[0].maxSeats).to.equal(num1);
+	// 	// 	expect(results[1].rooms_shortname).to.equal("HEBB");
+	// 	// 	const num2 = 375;
+	// 	// 	expect(results[1].maxSeats).to.equal(num2);
+	// 	// 	expect(results[2].rooms_shortname).to.equal("LSC");
+	// 	// 	const num3 = 350;
+	// 	// 	expect(results[2].maxSeats).to.equal(num3);
+	// 	// });
+	//
+	// 	it("using addedDataset: should perform the rooms query and return correct results", async () => {
+	// 		const isf = new InsightFacade();
+	//
+	// 		const query = {
+	// 			WHERE: {
+	// 				AND: [
+	// 					{
+	// 						IS: {
+	// 							rooms2_furniture: "*Tables*",
+	// 						},
+	// 					},
+	// 					{
+	// 						GT: {
+	// 							rooms2_seats: 300,
+	// 						},
+	// 					},
+	// 				],
+	// 			},
+	// 			OPTIONS: {
+	// 				COLUMNS: ["rooms2_shortname", "maxSeats"],
+	// 				ORDER: {
+	// 					dir: "DOWN",
+	// 					keys: ["maxSeats"],
+	// 				},
+	// 			},
+	// 			TRANSFORMATIONS: {
+	// 				GROUP: ["rooms2_shortname"],
+	// 				APPLY: [
+	// 					{
+	// 						maxSeats: {
+	// 							MAX: "rooms2_seats",
+	// 						},
+	// 					},
+	// 				],
+	// 			},
+	// 		};
+	//
+	// 		const results = await isf.performQuery(query);
+	// 		// We expect three groups: OSBO, HEBB, and LSC.
+	// 		const three = 3;
+	// 		expect(results).to.be.an("array").with.lengthOf(three);
+	//
+	// 		// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+	// 		expect(results[0].rooms2_shortname).to.equal("OSBO");
+	//
+	// 		const num1 = 442;
+	// 		expect(results[0].maxSeats).to.equal(num1);
+	// 		expect(results[1].rooms2_shortname).to.equal("HEBB");
+	// 		const num2 = 375;
+	// 		expect(results[1].maxSeats).to.equal(num2);
+	// 		expect(results[2].rooms2_shortname).to.equal("LSC");
+	// 		const num3 = 350;
+	// 		expect(results[2].maxSeats).to.equal(num3);
+	// 	});
+	// });
 
 	describe("TransformationsProcessor with Missing Values", () => {
 		const sampleData = [
@@ -1294,8 +1378,6 @@ describe("InsightFacade", function () {
 					expect.fail(`performQuery threw unexpected error: ${err}`);
 				}
 
-				// to determine what to put here :)
-				// if you catch an error and it is expected
 				if (expected === "ResultTooLargeError") {
 					expect(err).to.be.instanceof(ResultTooLargeError);
 				} else if (expected === "InsightError") {
@@ -1311,24 +1393,9 @@ describe("InsightFacade", function () {
 				expect.fail(`performQuery resolved when it should have rejected with ${expected}`);
 			}
 
-			// to determine what to put here :)
-			// no error, no expectation, return result
-			// change this?
 			expect(result).to.have.deep.members(expected);
 			return; // optional?
 		}
-
-		// before(async function () {
-		// 	try {
-		// 		sections = await getContentFromArchives("singleCourse.zip");
-		// 		console.log("Dataset loaded successfully");
-		// 		await clearDisk();
-		// 		console.log("Disk cleared successfully");
-		// 	} catch (err) {
-		// 		console.error("Error in before hook:", err);
-		// 		throw err;  // Re-throw to fail the test suite if necessary
-		// 	}
-		// });
 
 		before(async function () {
 			// after(async function () {
