@@ -121,7 +121,8 @@ function processRoomRow(
 	buildingInfo: { shortname: string; fullname?: string; address: string; lat: number; lon: number; }
 ): Room | null {
 	const cells = findElements(row, "td");
-	if (cells.length < 4) return null;
+	const cellsLength = 4;
+	if (cells.length < cellsLength) return null;
 	const roomNumber = extractRoomNumber(row);
 	const capacity = extractCapacity(row);
 	const furniture = extractFurniture(row);
@@ -189,8 +190,6 @@ export function parseBuildingHtml(
 	html: string,
 	buildingInfo: { shortname: string; address: string; lat: number; lon: number; fullname?: string }
 ): Room[] {
-	console.log(html);
-	console.log(buildingInfo);
 	const document = parse5.parse(html);
 	const tables = findElements(document, "table");
 	const fullName = getBuildingFullName(document, buildingInfo);
