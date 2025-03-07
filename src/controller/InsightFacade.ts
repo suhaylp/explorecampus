@@ -110,7 +110,7 @@ export default class InsightFacade implements IInsightFacade {
 					address: building.address,
 					lat: geo.lat,
 					lon: geo.lon,
-					fullname: building.shortname,
+					fullname: building.fullname,
 				});
 			} catch (err) {
 				this.errorsList.push(`Error processing ${building.shortname}: ${err}`);
@@ -226,7 +226,7 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private transformRoomsDataset(datasetId: string, data: Room[]): Record<string, any>[] {
-		return data.map(record => ({
+		return data.map((record) => ({
 			[`${datasetId}_fullname`]: record.fullname ?? "",
 			[`${datasetId}_shortname`]: record.shortname ?? "",
 			[`${datasetId}_number`]: record.number ?? "",
@@ -240,7 +240,6 @@ export default class InsightFacade implements IInsightFacade {
 			[`${datasetId}_href`]: record.href ?? "",
 		}));
 	}
-
 
 	private transformDataset(datasetId: string, data: Section[]): Record<string, any>[] {
 		return data.map((record) => ({

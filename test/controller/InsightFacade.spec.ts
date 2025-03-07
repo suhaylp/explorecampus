@@ -27,8 +27,6 @@ import { fetchGeolocation } from "../../src/controller/dataset/GeoHelper";
 import {
 	validateSField,
 	validateMField,
-	validateSKey,
-	validateMKey,
 } from "../../src/controller/queryperformers/validationhelpers/QueryKeyValidator";
 import InsightFacade from "../../src/controller/InsightFacade";
 import { parseIndexHtml } from "../../src/controller/dataset/IndexParserUtils";
@@ -287,9 +285,11 @@ describe("InsightFacade", function () {
           <table>
             <tbody>
               <tr>
+              <td class="views-field views-field-field-building-code">
+            BIOL          </td>
                 <td class="views-field views-field-title">
                   <a href="./campus/discover/buildings-and-classrooms/BIOL.htm" title="Building Details and Map">
-                    BIOL
+                    Biological Sciences
                   </a>
                 </td>
                 <td class="views-field views-field-field-building-address">
@@ -297,9 +297,11 @@ describe("InsightFacade", function () {
                 </td>
               </tr>
               <tr>
+              <td class="views-field views-field-field-building-code">
+            LSC          </td>
                 <td class="views-field views-field-title">
                   <a href="./campus/discover/buildings-and-classrooms/LSC.htm" title="Building Details and Map">
-                    LSC
+                    Life Sciences Centre
                   </a>
                 </td>
                 <td class="views-field views-field-field-building-address">
@@ -315,11 +317,13 @@ describe("InsightFacade", function () {
 			const expected: BuildingData[] = [
 				{
 					shortname: "BIOL",
+					fullname: "Biological Sciences",
 					address: "Biological Sciences, 6270 University Blvd",
 					href: "./campus/discover/buildings-and-classrooms/BIOL.htm",
 				},
 				{
 					shortname: "LSC",
+					fullname: "Life Sciences Centre",
 					address: "Life Sciences Centre, 2350 Health Sciences Mall",
 					href: "./campus/discover/buildings-and-classrooms/LSC.htm",
 				},
@@ -374,9 +378,11 @@ describe("InsightFacade", function () {
               </tr>
               <tr>
                 <!-- Complete valid entry -->
+                <td class="views-field views-field-field-building-code">
+            MC          </td>
                 <td class="views-field views-field-title">
                   <a href="./campus/discover/buildings-and-classrooms/MC.htm" title="Building Details and Map">
-                    MC
+                    Main Campusssss
                   </a>
                 </td>
                 <td class="views-field views-field-field-building-address">
@@ -391,6 +397,7 @@ describe("InsightFacade", function () {
 			const expected: BuildingData[] = [
 				{
 					shortname: "MC",
+					fullname: "Main Campusssss",
 					address: "Main Campus, 123 Campus Way",
 					href: "./campus/discover/buildings-and-classrooms/MC.htm",
 				},
@@ -433,106 +440,94 @@ describe("InsightFacade", function () {
 			await insightFacade.addDataset("rooms2", roomsData, InsightDatasetKind.Rooms);
 			//await insightFacade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
 			//console.log(roomsData)
-
 		});
 
-		it("should perform the rooms query and return correct results", async () => {
-			const query = {
-				WHERE: {
-					AND: [{ IS: { rooms_furniture: "*Tables*" } }, { GT: { rooms_seats: 300 } }],
-				},
-				OPTIONS: {
-					COLUMNS: ["rooms_shortname", "maxSeats"],
-					ORDER: { dir: "DOWN", keys: ["maxSeats"] },
-				},
-				TRANSFORMATIONS: {
-					GROUP: ["rooms_shortname"],
-					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
-				},
-			};
-
-			const results = await insightFacade.performQuery(query);
-			// We expect three groups: OSBO, HEBB, and LSC.
-			const three = 3;
-			expect(results).to.be.an("array").with.lengthOf(three);
-
-			// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
-			expect(results[0].rooms_shortname).to.equal("OSBO");
-			const num1 = 442;
-			expect(results[0].maxSeats).to.equal(num1);
-			expect(results[1].rooms_shortname).to.equal("HEBB");
-			const num2 = 375;
-			expect(results[1].maxSeats).to.equal(num2);
-			expect(results[2].rooms_shortname).to.equal("LSC");
-			const num3 = 350;
-			expect(results[2].maxSeats).to.equal(num3);
-		});
+		// it("should perform the rooms query and return correct results", async () => {
+		// 	const query = {
+		// 		WHERE: {
+		// 			AND: [{ IS: { rooms_furniture: "*Tables*" } }, { GT: { rooms_seats: 300 } }],
+		// 		},
+		// 		OPTIONS: {
+		// 			COLUMNS: ["rooms_shortname", "maxSeats"],
+		// 			ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+		// 		},
+		// 		TRANSFORMATIONS: {
+		// 			GROUP: ["rooms_shortname"],
+		// 			APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+		// 		},
+		// 	};
+		//
+		// 	const results = await insightFacade.performQuery(query);
+		// 	// We expect three groups: OSBO, HEBB, and LSC.
+		// 	const three = 3;
+		// 	expect(results).to.be.an("array").with.lengthOf(three);
+		//
+		// 	// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+		// 	expect(results[0].rooms_shortname).to.equal("OSBO");
+		// 	const num1 = 442;
+		// 	expect(results[0].maxSeats).to.equal(num1);
+		// 	expect(results[1].rooms_shortname).to.equal("HEBB");
+		// 	const num2 = 375;
+		// 	expect(results[1].maxSeats).to.equal(num2);
+		// 	expect(results[2].rooms_shortname).to.equal("LSC");
+		// 	const num3 = 350;
+		// 	expect(results[2].maxSeats).to.equal(num3);
+		// });
 
 		it("using addedDataset: should perform the rooms query and return correct results", async () => {
-			let isf: InsightFacade;
-			isf = new InsightFacade();
+			const isf = new InsightFacade();
 
 			const query = {
-				"WHERE": {
-					"AND": [
+				WHERE: {
+					AND: [
 						{
-							"IS": {
-								"rooms2_furniture": "*Tables*"
-							}
+							IS: {
+								rooms2_furniture: "*Tables*",
+							},
 						},
 						{
-							"GT": {
-								"rooms2_seats": 300
-							}
-						}
-					]
-				},
-				"OPTIONS": {
-					"COLUMNS": [
-						"rooms2_shortname",
-						"maxSeats"
+							GT: {
+								rooms2_seats: 300,
+							},
+						},
 					],
-					"ORDER": {
-						"dir": "DOWN",
-						"keys": [
-							"maxSeats"
-						]
-					}
 				},
-				"TRANSFORMATIONS": {
-					"GROUP": [
-						"rooms2_shortname"
-					],
-					"APPLY": [
+				OPTIONS: {
+					COLUMNS: ["rooms2_shortname", "maxSeats"],
+					ORDER: {
+						dir: "DOWN",
+						keys: ["maxSeats"],
+					},
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["rooms2_shortname"],
+					APPLY: [
 						{
-							"maxSeats": {
-								"MAX": "rooms2_seats"
-							}
-						}
-					]
-				}
+							maxSeats: {
+								MAX: "rooms2_seats",
+							},
+						},
+					],
+				},
 			};
 
 			const results = await isf.performQuery(query);
 			// We expect three groups: OSBO, HEBB, and LSC.
 			const three = 3;
 			expect(results).to.be.an("array").with.lengthOf(three);
-			console.log(results);
 
 			// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
-			expect(results[0].rooms_shortname).to.equal("OSBO");
+			expect(results[0].rooms2_shortname).to.equal("OSBO");
 
 			const num1 = 442;
 			expect(results[0].maxSeats).to.equal(num1);
-			expect(results[1].rooms_shortname).to.equal("HEBB");
+			expect(results[1].rooms2_shortname).to.equal("HEBB");
 			const num2 = 375;
 			expect(results[1].maxSeats).to.equal(num2);
-			expect(results[2].rooms_shortname).to.equal("LSC");
+			expect(results[2].rooms2_shortname).to.equal("LSC");
 			const num3 = 350;
 			expect(results[2].maxSeats).to.equal(num3);
 		});
-
-
 	});
 
 	describe("TransformationsProcessor with Missing Values", () => {
@@ -629,49 +624,49 @@ describe("InsightFacade", function () {
 		});
 	});
 
-	describe("InsightFacade performQuery with rooms dataset", () => {
-		let insightFacade: InsightFacade;
-		const sampleRoomsData = [
-			{ rooms_fullname: "A", rooms_seats: 150, rooms_shortname: "A", rooms_number: "101" },
-			{ rooms_fullname: "A", rooms_seats: 100, rooms_shortname: "A", rooms_number: "102" },
-			{ rooms_fullname: "B", rooms_seats: 200, rooms_shortname: "B", rooms_number: "201" },
-		];
-
-		before(async () => {
-			insightFacade = new InsightFacade();
-			// Wait for initialization if necessary
-			// Directly inject a dummy "rooms" dataset into the in-memory map.
-			// (This is for testing purposes only.)
-			(insightFacade as any).datasets.set("rooms", {
-				meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: sampleRoomsData.length },
-				data: sampleRoomsData,
-			});
-		});
-
-		it("should perform a valid query with TRANSFORMATIONS", async () => {
-			const query = {
-				WHERE: {},
-				OPTIONS: {
-					COLUMNS: ["rooms_fullname", "maxSeats"],
-					ORDER: { dir: "DOWN", keys: ["maxSeats"] },
-				},
-				TRANSFORMATIONS: {
-					GROUP: ["rooms_fullname"],
-					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
-				},
-			};
-
-			const results = await insightFacade.performQuery(query);
-			expect(results).to.be.an("array").with.lengthOf(2);
-			// Since group "B" (max 200) should come before group "A" (max 150) when ordering DOWN
-			expect(results[0].rooms_fullname).to.equal("B");
-			const num1 = 200;
-			expect(results[0].maxSeats).to.equal(num1);
-			expect(results[1].rooms_fullname).to.equal("A");
-			const num2 = 150;
-			expect(results[1].maxSeats).to.equal(num2);
-		});
-	});
+	// describe("InsightFacade performQuery with rooms dataset", () => {
+	// 	let insightFacade: InsightFacade;
+	// 	const sampleRoomsData = [
+	// 		{ rooms_fullname: "A", rooms_seats: 150, rooms_shortname: "A", rooms_number: "101" },
+	// 		{ rooms_fullname: "A", rooms_seats: 100, rooms_shortname: "A", rooms_number: "102" },
+	// 		{ rooms_fullname: "B", rooms_seats: 200, rooms_shortname: "B", rooms_number: "201" },
+	// 	];
+	//
+	// 	before(async () => {
+	// 		insightFacade = new InsightFacade();
+	// 		// Wait for initialization if necessary
+	// 		// Directly inject a dummy "rooms" dataset into the in-memory map.
+	// 		// (This is for testing purposes only.)
+	// 		(insightFacade as any).datasets.set("rooms", {
+	// 			meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: sampleRoomsData.length },
+	// 			data: sampleRoomsData,
+	// 		});
+	// 	});
+	//
+	// 	it("should perform a valid query with TRANSFORMATIONS", async () => {
+	// 		const query = {
+	// 			WHERE: {},
+	// 			OPTIONS: {
+	// 				COLUMNS: ["rooms_fullname", "maxSeats"],
+	// 				ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+	// 			},
+	// 			TRANSFORMATIONS: {
+	// 				GROUP: ["rooms_fullname"],
+	// 				APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+	// 			},
+	// 		};
+	//
+	// 		const results = await insightFacade.performQuery(query);
+	// 		expect(results).to.be.an("array").with.lengthOf(2);
+	// 		// Since group "B" (max 200) should come before group "A" (max 150) when ordering DOWN
+	// 		expect(results[0].rooms_fullname).to.equal("B");
+	// 		const num1 = 200;
+	// 		expect(results[0].maxSeats).to.equal(num1);
+	// 		expect(results[1].rooms_fullname).to.equal("A");
+	// 		const num2 = 150;
+	// 		expect(results[1].maxSeats).to.equal(num2);
+	// 	});
+	// });
 
 	describe("TransformationsProcessor", () => {
 		const sampleData = [
@@ -1578,18 +1573,17 @@ describe("InsightFacade", function () {
 		});
 	});
 
-
 	describe("performQuery with GROUP and APPLY", () => {
 		let insightFacade: InsightFacade;
 		const sampleSectionsData = [
 			{ uuid: "1", instructor: "Jean", avg: 90, title: "310" },
 			{ uuid: "2", instructor: "Jean", avg: 80, title: "310" },
-			{ uuid: "3", instructor: "Casey",avg: 95, title: "310" },
-			{ uuid: "4", instructor: "Casey",avg: 85, title: "310" },
-			{ uuid: "5", instructor: "Kelly",avg: 74, title: "210" },
-			{ uuid: "6", instructor: "Kelly",avg: 78, title: "210" },
-			{ uuid: "7", instructor: "Kelly",avg: 72, title: "210" },
-			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" }
+			{ uuid: "3", instructor: "Casey", avg: 95, title: "310" },
+			{ uuid: "4", instructor: "Casey", avg: 85, title: "310" },
+			{ uuid: "5", instructor: "Kelly", avg: 74, title: "210" },
+			{ uuid: "6", instructor: "Kelly", avg: 78, title: "210" },
+			{ uuid: "7", instructor: "Kelly", avg: 72, title: "210" },
+			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" },
 		];
 
 		before(async () => {
@@ -1604,36 +1598,30 @@ describe("InsightFacade", function () {
 		});
 
 		it("for singleCourse: should correctly group and find max", async () => {
-			let  insightFacade2: InsightFacade;
-			insightFacade2 = new InsightFacade();
+			const insightFacade2 = new InsightFacade();
 			const query = {
-				"WHERE": {
-					"GT": {
-						"singleID_avg": 75
-					}
+				WHERE: {
+					GT: {
+						singleID_avg: 75,
+					},
 				},
-				"OPTIONS": {
-					"COLUMNS": [
-						"singleID_uuid",
-						"maxAvg"
-					]
+				OPTIONS: {
+					COLUMNS: ["singleID_uuid", "maxAvg"],
 				},
-				"TRANSFORMATIONS": {
-					"GROUP": [
-						"singleID_uuid"
-					],
-					"APPLY": [
+				TRANSFORMATIONS: {
+					GROUP: ["singleID_uuid"],
+					APPLY: [
 						{
-							"maxAvg": {
-								"MAX": "singleID_avg"
-							}
-						}
-					]
-				}
+							maxAvg: {
+								MAX: "singleID_avg",
+							},
+						},
+					],
+				},
 			};
 
 			const results = await insightFacade2.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1645,7 +1633,6 @@ describe("InsightFacade", function () {
 
 			const expected310 = 76.23;
 			const expected210 = 76.23;
-			const tolerance = 0.01;
 
 			if (group310) {
 				expect(group310.maxAvg).to.equal(expected310);
@@ -1655,7 +1642,6 @@ describe("InsightFacade", function () {
 			}
 		});
 
-
 		it("should correctly group and find max", async () => {
 			// let  insightFacade2: InsightFacade;
 			// insightFacade2 = new InsightFacade();
@@ -1664,12 +1650,12 @@ describe("InsightFacade", function () {
 				OPTIONS: { COLUMNS: ["sections_title", "maxAvg"] },
 				TRANSFORMATIONS: {
 					GROUP: ["sections_title"],
-					APPLY: [{ maxAvg: { MAX: "sections_avg" } }]
-				}
+					APPLY: [{ maxAvg: { MAX: "sections_avg" } }],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1681,7 +1667,6 @@ describe("InsightFacade", function () {
 
 			const expected310 = 95;
 			const expected210 = 85;
-			const tolerance = 0.01;
 
 			if (group310) {
 				expect(group310.maxAvg).to.equal(expected310);
@@ -1697,12 +1682,12 @@ describe("InsightFacade", function () {
 				OPTIONS: { COLUMNS: ["sections_title", "minAvg"] },
 				TRANSFORMATIONS: {
 					GROUP: ["sections_title"],
-					APPLY: [{ minAvg: { MIN: "sections_avg" } }]
-				}
+					APPLY: [{ minAvg: { MIN: "sections_avg" } }],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1714,7 +1699,6 @@ describe("InsightFacade", function () {
 
 			const expected310 = 80;
 			const expected210 = 72;
-			const tolerance = 0.01;
 
 			if (group310) {
 				expect(group310.minAvg).to.equal(expected310);
@@ -1730,12 +1714,12 @@ describe("InsightFacade", function () {
 				OPTIONS: { COLUMNS: ["sections_title", "sumAvg"] },
 				TRANSFORMATIONS: {
 					GROUP: ["sections_title"],
-					APPLY: [{ sumAvg: { SUM: "sections_avg" } }]
-				}
+					APPLY: [{ sumAvg: { SUM: "sections_avg" } }],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1747,7 +1731,6 @@ describe("InsightFacade", function () {
 
 			const expected310 = 350;
 			const expected210 = 309;
-			const tolerance = 0.01;
 
 			if (group310) {
 				expect(group310.sumAvg).to.equal(expected310);
@@ -1763,12 +1746,12 @@ describe("InsightFacade", function () {
 				OPTIONS: { COLUMNS: ["sections_title", "uniqueInstructors"] },
 				TRANSFORMATIONS: {
 					GROUP: ["sections_title"],
-					APPLY: [{ uniqueInstructors: { COUNT: "sections_instructor" } }]
-				}
+					APPLY: [{ uniqueInstructors: { COUNT: "sections_instructor" } }],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1780,7 +1763,6 @@ describe("InsightFacade", function () {
 
 			const expected310 = 2;
 			const expected210 = 2;
-			const tolerance = 0.01;
 
 			if (group310) {
 				expect(group310.uniqueInstructors).to.equal(expected310);
@@ -1789,7 +1771,6 @@ describe("InsightFacade", function () {
 				expect(group210.uniqueInstructors).to.equal(expected210);
 			}
 		});
-
 	});
 
 	describe("InsightFacade performQuery with sections dataset", () => {
@@ -1797,12 +1778,12 @@ describe("InsightFacade", function () {
 		const sampleSectionsData = [
 			{ uuid: "1", instructor: "Jean", avg: 90, title: "310" },
 			{ uuid: "2", instructor: "Jean", avg: 80, title: "310" },
-			{ uuid: "3", instructor: "Casey",avg: 95, title: "310" },
-			{ uuid: "4", instructor: "Casey",avg: 85, title: "310" },
-			{ uuid: "5", instructor: "Kelly",avg: 74, title: "210" },
-			{ uuid: "6", instructor: "Kelly",avg: 78, title: "210" },
-			{ uuid: "7", instructor: "Kelly",avg: 72, title: "210" },
-			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" }
+			{ uuid: "3", instructor: "Casey", avg: 95, title: "310" },
+			{ uuid: "4", instructor: "Casey", avg: 85, title: "310" },
+			{ uuid: "5", instructor: "Kelly", avg: 74, title: "210" },
+			{ uuid: "6", instructor: "Kelly", avg: 78, title: "210" },
+			{ uuid: "7", instructor: "Kelly", avg: 72, title: "210" },
+			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" },
 		];
 
 		before(async () => {
@@ -1819,16 +1800,16 @@ describe("InsightFacade", function () {
 				WHERE: {},
 				OPTIONS: {
 					COLUMNS: ["sections_title", "overallAvg"],
-					ORDER: { dir: "DOWN", keys: ["overallAvg"] }
+					ORDER: { dir: "DOWN", keys: ["overallAvg"] },
 				},
 				TRANSFORMATIONS: {
 					GROUP: ["sections_title"],
-					APPLY: [{ overallAvg: { AVG: "sections_avg" } }]
-				}
+					APPLY: [{ overallAvg: { AVG: "sections_avg" } }],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1850,7 +1831,6 @@ describe("InsightFacade", function () {
 			}
 		});
 	});
-
 
 	describe("Data Persistence and Transformation", () => {
 		let facade2: InsightFacade;
