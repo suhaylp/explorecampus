@@ -6,7 +6,7 @@ import { TransformationsValidator } from "./validationhelpers/QueryTransformatio
 export class QueryValidator {
 
 
-	public static validateQuery(query: any): void {
+	public static validateQuery(query: any, datasetKind: "rooms" | "sections"): void {
 		if (typeof query !== "object" || query === null || Array.isArray(query)) {
 			throw new InsightError("Query must be a non-null object");
 		}
@@ -18,7 +18,7 @@ export class QueryValidator {
 		}
 
 		OptionsValidator.validateOptions(query.OPTIONS);
-		WhereValidator.validateWhere(query.WHERE);
+		WhereValidator.validateWhere(query.WHERE, datasetKind);
 
 		if ("TRANSFORMATIONS" in query) {
 			TransformationsValidator.validateTransformations(query.TRANSFORMATIONS);
@@ -38,7 +38,7 @@ export class QueryValidator {
 
 
 
-private static extractDatasetIdFromColumns(columns: string[]): string {
+	private static extractDatasetIdFromColumns(columns: string[]): string {
 		const firstColumn = columns[0];
 		const parts = firstColumn.split("_");
 		if (parts.length !== 2) {

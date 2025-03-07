@@ -7,34 +7,33 @@ import {
 	ResultTooLargeError,
 } from "../../src/controller/IInsightFacade";
 // import InsightFacade from "../../src/controller/InsightFacade";
-import {clearDisk, getContentFromArchives, loadTestQuery} from "../TestUtil";
+import { clearDisk, getContentFromArchives, loadTestQuery } from "../TestUtil";
 
-import {expect, use} from "chai";
+import { expect, use } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import fs from "fs-extra";
 import path from "path";
 import JSZip from "jszip";
 
 // import { expect } from "chai";
-import {parseBuildingHtml} from "../../src/controller/dataset/BuildingParserUtils";
-import {QueryValidator} from "../../src/controller/queryperformers/QueryValidator";
+import { parseBuildingHtml } from "../../src/controller/dataset/BuildingParserUtils";
+import { QueryValidator } from "../../src/controller/queryperformers/QueryValidator";
 // import { InsightDatasetKind, InsightError } from "../../src/controller/IInsightFacade";
-import {performTransformations} from "../../src/controller/queryperformers/executionhelpers/TransformationsProcessor";
-import {OrderEvaluator} from "../../src/controller/queryperformers/executionhelpers/OrderEvaluator";
+import { performTransformations } from "../../src/controller/queryperformers/executionhelpers/TransformationsProcessor";
+import { OrderEvaluator } from "../../src/controller/queryperformers/executionhelpers/OrderEvaluator";
 
-import {fetchGeolocation} from "../../src/controller/dataset/GeoHelper";
+import { fetchGeolocation } from "../../src/controller/dataset/GeoHelper";
 
 import {
-	validateMField,
-	validateMKey,
 	validateSField,
+	validateMField,
 	validateSKey,
+	validateMKey,
 } from "../../src/controller/queryperformers/validationhelpers/QueryKeyValidator";
 import InsightFacade from "../../src/controller/InsightFacade";
-import {BuildingData, parseIndexHtml} from "../../src/controller/dataset/IndexParserUtils";
-import {
-	TransformationsValidator
-} from "../../src/controller/queryperformers/validationhelpers/QueryTransformationsValidator";
+import { parseIndexHtml } from "../../src/controller/dataset/IndexParserUtils";
+import { BuildingData } from "../../src/controller/dataset/IndexParserUtils";
+import { TransformationsValidator } from "../../src/controller/queryperformers/validationhelpers/QueryTransformationsValidator";
 // import {QueryExecutor} from "../../src/controller/queryperformers/QueryExecutor";
 // import {QueryEngine} from "../../src/controller/queryperformers/QueryEngine";
 
@@ -288,9 +287,11 @@ describe("InsightFacade", function () {
           <table>
             <tbody>
               <tr>
+              <td class="views-field views-field-field-building-code">
+            BIOL          </td>
                 <td class="views-field views-field-title">
                   <a href="./campus/discover/buildings-and-classrooms/BIOL.htm" title="Building Details and Map">
-                    BIOL
+                    Biological Sciences
                   </a>
                 </td>
                 <td class="views-field views-field-field-building-address">
@@ -298,9 +299,11 @@ describe("InsightFacade", function () {
                 </td>
               </tr>
               <tr>
+              <td class="views-field views-field-field-building-code">
+            LSC          </td>
                 <td class="views-field views-field-title">
                   <a href="./campus/discover/buildings-and-classrooms/LSC.htm" title="Building Details and Map">
-                    LSC
+                    Life Sciences Centre
                   </a>
                 </td>
                 <td class="views-field views-field-field-building-address">
@@ -316,11 +319,13 @@ describe("InsightFacade", function () {
 			const expected: BuildingData[] = [
 				{
 					shortname: "BIOL",
+					fullname: "Biological Sciences",
 					address: "Biological Sciences, 6270 University Blvd",
 					href: "./campus/discover/buildings-and-classrooms/BIOL.htm",
 				},
 				{
 					shortname: "LSC",
+					fullname: "Life Sciences Centre",
 					address: "Life Sciences Centre, 2350 Health Sciences Mall",
 					href: "./campus/discover/buildings-and-classrooms/LSC.htm",
 				},
@@ -375,9 +380,11 @@ describe("InsightFacade", function () {
               </tr>
               <tr>
                 <!-- Complete valid entry -->
+                <td class="views-field views-field-field-building-code">
+            MC          </td>
                 <td class="views-field views-field-title">
                   <a href="./campus/discover/buildings-and-classrooms/MC.htm" title="Building Details and Map">
-                    MC
+                    Main Campusssss
                   </a>
                 </td>
                 <td class="views-field views-field-field-building-address">
@@ -392,6 +399,7 @@ describe("InsightFacade", function () {
 			const expected: BuildingData[] = [
 				{
 					shortname: "MC",
+					fullname: "Main Campusssss",
 					address: "Main Campus, 123 Campus Way",
 					href: "./campus/discover/buildings-and-classrooms/MC.htm",
 				},
@@ -408,6 +416,7 @@ describe("InsightFacade", function () {
 		let roomsData: string;
 
 		before(async () => {
+			await clearDisk();
 			insightFacade = new InsightFacade();
 			// Dummy dataset for rooms.
 			// Only records with more than 300 seats and furniture containing "Tables" will qualify.
@@ -431,7 +440,42 @@ describe("InsightFacade", function () {
 			(insightFacade as any).datasets.set("rooms", dummyDataset);
 			roomsData = await getContentFromArchives("campus.zip");
 			await insightFacade.addDataset("rooms2", roomsData, InsightDatasetKind.Rooms);
+			//await insightFacade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
+			//console.log(roomsData)
 
+		});
+
+		it("should perform the rooms query and return correct results", async () => {
+			const query = {
+				WHERE: {
+					AND: [{ IS: { rooms_furniture: "*Tables*" } }, { GT: { rooms_seats: 300 } }],
+				},
+				OPTIONS: {
+					COLUMNS: ["rooms_shortname", "maxSeats"],
+					ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["rooms_shortname"],
+					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+				},
+			};
+
+			const results = await insightFacade.performQuery(query);
+			// We expect three groups: OSBO, HEBB, and LSC.
+			const three = 3;
+			console.log(results);
+			expect(results).to.be.an("array").with.lengthOf(three);
+
+			// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+			expect(results[0].rooms_shortname).to.equal("OSBO");
+			const num1 = 442;
+			expect(results[0].maxSeats).to.equal(num1);
+			expect(results[1].rooms_shortname).to.equal("HEBB");
+			const num2 = 375;
+			expect(results[1].maxSeats).to.equal(num2);
+			expect(results[2].rooms_shortname).to.equal("LSC");
+			const num3 = 350;
+			expect(results[2].maxSeats).to.equal(num3);
 		});
 
 		it("using addedDataset: should perform the rooms query and return correct results", async () => {
@@ -483,50 +527,22 @@ describe("InsightFacade", function () {
 			// We expect three groups: OSBO, HEBB, and LSC.
 			const three = 3;
 			expect(results).to.be.an("array").with.lengthOf(three);
+			console.log(results);
 
 			// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
-			expect(results[0].rooms_shortname).to.equal("OSBO");
+			expect(results[0].rooms2_shortname).to.equal("OSBO");
+
 			const num1 = 442;
 			expect(results[0].maxSeats).to.equal(num1);
-			expect(results[1].rooms_shortname).to.equal("HEBB");
+			expect(results[1].rooms2_shortname).to.equal("HEBB");
 			const num2 = 375;
 			expect(results[1].maxSeats).to.equal(num2);
-			expect(results[2].rooms_shortname).to.equal("LSC");
+			expect(results[2].rooms2_shortname).to.equal("LSC");
 			const num3 = 350;
 			expect(results[2].maxSeats).to.equal(num3);
 		});
 
-		it("should perform the rooms query and return correct results", async () => {
-			const query = {
-				WHERE: {
-					AND: [{ IS: { rooms_furniture: "*Tables*" } }, { GT: { rooms_seats: 300 } }],
-				},
-				OPTIONS: {
-					COLUMNS: ["rooms_shortname", "maxSeats"],
-					ORDER: { dir: "DOWN", keys: ["maxSeats"] },
-				},
-				TRANSFORMATIONS: {
-					GROUP: ["rooms_shortname"],
-					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
-				},
-			};
 
-			const results = await insightFacade.performQuery(query);
-			// We expect three groups: OSBO, HEBB, and LSC.
-			const three = 3;
-			expect(results).to.be.an("array").with.lengthOf(three);
-
-			// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
-			expect(results[0].rooms_shortname).to.equal("OSBO");
-			const num1 = 442;
-			expect(results[0].maxSeats).to.equal(num1);
-			expect(results[1].rooms_shortname).to.equal("HEBB");
-			const num2 = 375;
-			expect(results[1].maxSeats).to.equal(num2);
-			expect(results[2].rooms_shortname).to.equal("LSC");
-			const num3 = 350;
-			expect(results[2].maxSeats).to.equal(num3);
-		});
 	});
 
 	describe("TransformationsProcessor with Missing Values", () => {
@@ -712,7 +728,7 @@ describe("InsightFacade", function () {
 					ORDER: "rooms_seats",
 				},
 			};
-			expect(() => QueryValidator.validateQuery(query)).to.not.throw();
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.not.throw();
 		});
 
 		it("should validate a query with valid TRANSFORMATIONS", () => {
@@ -727,7 +743,7 @@ describe("InsightFacade", function () {
 					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
 				},
 			};
-			expect(() => QueryValidator.validateQuery(query)).to.not.throw();
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.not.throw();
 		});
 
 		it("should reject a query with TRANSFORMATIONS if a column is not in GROUP or APPLY", () => {
@@ -742,7 +758,7 @@ describe("InsightFacade", function () {
 					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
 				},
 			};
-			expect(() => QueryValidator.validateQuery(query)).to.throw(InsightError, /rooms_seats/);
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.throw(InsightError, /rooms_seats/);
 		});
 	});
 
@@ -808,14 +824,14 @@ describe("InsightFacade", function () {
 
 			// Verify the first room's details
 			const room1 = rooms[0];
-			expect(room1.rooms_number).to.equal("1503");
+			expect(room1.number).to.equal("1503");
 			const num = 16;
-			expect(room1.rooms_seats).to.equal(num);
-			expect(room1.rooms_furniture).to.equal("Classroom-Movable Tables & Chairs");
-			expect(room1.rooms_type).to.equal("Small Group");
-			expect(room1.rooms_href).to.equal("./BIOL1503.htm");
-			expect(room1.rooms_name).to.equal("BIOL_1503");
-			expect(room1.rooms_fullname).to.equal("Biological Sciences");
+			expect(room1.seats).to.equal(num);
+			expect(room1.furniture).to.equal("Classroom-Movable Tables & Chairs");
+			expect(room1.type).to.equal("Small Group");
+			expect(room1.href).to.equal("./BIOL1503.htm");
+			expect(room1.name).to.equal("BIOL_1503");
+			expect(room1.fullname).to.equal("Biological Sciences");
 		});
 	});
 
@@ -843,6 +859,7 @@ describe("InsightFacade", function () {
 		});
 	});
 
+	// QueryKeyValidator - Rooms
 	describe("QueryKeyValidator - Rooms", () => {
 		it("should accept valid rooms SFields", () => {
 			expect(() => validateSField("fullname", "rooms")).to.not.throw();
@@ -871,25 +888,48 @@ describe("InsightFacade", function () {
 		});
 	});
 
-	// THESE ARE WEIRDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-	// WHY INFERRING????????????
-	// changed to.not.throw to to.throw
-	describe("QueryKeyValidator - Inferred Dataset Kind", () => {
-		it("should infer 'rooms' for keys with id 'rooms'", () => {
-			expect(() => validateSKey("rooms_fullname")).to.throw();
-			expect(() => validateMKey("rooms_seats")).to.throw();
-		});
-
-		it("should infer 'sections' for keys with any other id", () => {
-			expect(() => validateSKey("sections_dept")).to.throw();
-			expect(() => validateMKey("sections_avg")).to.throw();
-		});
-
-		it("should reject keys with invalid fields based on inferred dataset kind", () => {
-			expect(() => validateSKey("sections_fullname")).to.throw();
-			expect(() => validateMKey("rooms_avg")).to.throw();
-		});
-	});
+	// // Tests for a Rooms dataset
+	// describe("QueryKeyValidator - Rooms 2", () => {
+	// 	it("should accept a valid string key for Rooms", () => {
+	// 		// Pass "rooms" explicitly as the dataset kind.
+	// 		expect(() => validateSKey("rooms_fullname", "rooms")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a string key with a wrong prefix for Rooms", () => {
+	// 		expect(() => validateSKey("sections_fullname", "rooms")).to.throw(InsightError);
+	// 		expect(() => validateSKey("fullname", "rooms")).to.throw(InsightError);
+	// 	});
+	//
+	// 	it("should accept a valid mkey for Rooms", () => {
+	// 		expect(() => validateMKey("rooms_seats", "rooms")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a mkey with a wrong prefix for Rooms", () => {
+	// 		expect(() => validateMKey("sections_avg", "rooms")).to.throw(InsightError);
+	// 		expect(() => validateMKey("avg", "rooms")).to.throw(InsightError);
+	// 	});
+	// });
+	//
+	// // Tests for a Sections dataset
+	// describe("QueryKeyValidator - Sections", () => {
+	// 	it("should accept a valid string key for Sections", () => {
+	// 		expect(() => validateSKey("sections_dept", "sections")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a string key with a wrong prefix for Sections", () => {
+	// 		expect(() => validateSKey("rooms_dept", "sections")).to.throw(InsightError);
+	// 		expect(() => validateSKey("dept", "sections")).to.throw(InsightError);
+	// 	});
+	//
+	// 	it("should accept a valid mkey for Sections", () => {
+	// 		expect(() => validateMKey("sections_avg", "sections")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a mkey with a wrong prefix for Sections", () => {
+	// 		expect(() => validateMKey("rooms_avg", "sections")).to.throw(InsightError);
+	// 		expect(() => validateMKey("avg", "sections")).to.throw(InsightError);
+	// 	});
+	// });
 
 	describe("AddDataset", function () {
 		beforeEach(async function () {
@@ -1253,8 +1293,8 @@ describe("InsightFacade", function () {
 			if (!this.test) {
 				throw new Error(
 					"Invalid call to checkQuery." +
-						"Usage: 'checkQuery' must be passed as the second parameter of Mocha's it(..) function." +
-						"Do not invoke the function directly."
+					"Usage: 'checkQuery' must be passed as the second parameter of Mocha's it(..) function." +
+					"Do not invoke the function directly."
 				);
 			}
 			// Destructuring assignment to reduce property accesses
@@ -1449,7 +1489,6 @@ describe("InsightFacade", function () {
 		return zip.generateAsync({ type: "base64" });
 	}
 
-		// Jayden - this was failing for me suddenly?
 	describe("C0 - Handling of Newline/Carriage Return in Dataset IDs", () => {
 		let validDataset: string;
 
@@ -1548,6 +1587,7 @@ describe("InsightFacade", function () {
 			expect(group210.overallAvg).to.be.closeTo(expectedAvg210, tolerance);
 		});
 	});
+
 
 	describe("performQuery with GROUP and APPLY", () => {
 		let insightFacade: InsightFacade;
@@ -1760,94 +1800,7 @@ describe("InsightFacade", function () {
 			}
 		});
 
-
-
-		const queries = [
-			{
-				description: "should correctly calculate average",
-				query: {
-					WHERE: {},
-					OPTIONS: { COLUMNS: ["sections_title", "overallAvg"] },
-					TRANSFORMATIONS: {
-						GROUP: ["sections_title"],
-						APPLY: [{ overallAvg: { AVG: "sections_avg" } }]
-					}
-				},
-				expected: { "310": 87.5, "210": 77.25 }
-			},
-			{
-				description: "should correctly find max",
-				query: {
-					WHERE: {},
-					OPTIONS: { COLUMNS: ["sections_title", "maxAvg"] },
-					TRANSFORMATIONS: {
-						GROUP: ["sections_title"],
-						APPLY: [{ maxAvg: { MAX: "sections_avg" } }]
-					}
-				},
-				expected: { "310": 95, "210": 85 }
-			},
-			{
-				description: "should correctly find min",
-				query: {
-					WHERE: {},
-					OPTIONS: { COLUMNS: ["sections_title", "minAvg"] },
-					TRANSFORMATIONS: {
-						GROUP: ["sections_title"],
-						APPLY: [{ minAvg: { MIN: "sections_avg" } }]
-					}
-				},
-				expected: { "310": 80, "210": 72 }
-			},
-			{
-				description: "should correctly calculate sum",
-				query: {
-					WHERE: {},
-					OPTIONS: { COLUMNS: ["sections_title", "sumAvg"] },
-					TRANSFORMATIONS: {
-						GROUP: ["sections_title"],
-						APPLY: [{ sumAvg: { SUM: "sections_avg" } }]
-					}
-				},
-				expected: { "310": 350, "210": 309 }
-			},
-			{
-				description: "should correctly count unique instructors",
-				query: {
-					WHERE: {},
-					OPTIONS: { COLUMNS: ["sections_title", "uniqueInstructors"] },
-					TRANSFORMATIONS: {
-						GROUP: ["sections_title"],
-						APPLY: [{ uniqueInstructors: { COUNT: "sections_instructor" } }]
-					}
-				},
-				expected: { "310": 2, "210": 2 }
-			}
-		];
-
-		// queries.forEach(({ description, query, expected }) => {
-		// 	it(description, async () => {
-		// 		const results = await insightFacade.performQuery(query);
-		// 		expect(results).to.be.an("array").with.lengthOf(2);
-		//
-		// 		results.forEach((result) => {
-		// 			const title = result.sections_title;
-		// 			let key: string = ""; // Declare key outside of the if-block
-		//
-		// 			if (typeof title === "string") {
-		// 				key = Object.keys(expected)[0].replace("310", title).replace("210", title);
-		// 			}
-		//
-		// 			const metricKey = Object.keys(query.TRANSFORMATIONS.APPLY[0])[0]; // Ensure correct key extraction
-		// 			const tolerance = 0.01;
-		//
-		// 			expect(result[metricKey]).to.be.closeTo(expected[key], tolerance);
-		// 		});
-		// 	});
-		// });
-
 	});
-
 
 	describe("InsightFacade performQuery with sections dataset", () => {
 		let insightFacade: InsightFacade;
@@ -1903,10 +1856,11 @@ describe("InsightFacade", function () {
 				expect(group310.overallAvg).to.be.closeTo(expectedAvg310, tolerance);
 			}
 			if (group210) {
-			expect(group210.overallAvg).to.be.closeTo(expectedAvg210, tolerance);
+				expect(group210.overallAvg).to.be.closeTo(expectedAvg210, tolerance);
 			}
 		});
 	});
+
 
 	describe("Data Persistence and Transformation", () => {
 		let facade2: InsightFacade;
