@@ -55,8 +55,8 @@ describe("InsightFacade", function () {
 		await clearDisk();
 	});
 
-	//UNCOMMENT THIS
-	//COME BACK
+	// UNCOMMENT THIS
+	// COME BACK
 	// describe("New PerformQuery", function () {
 	// 	/**
 	// 	 * Loads the TestQuery specified in the test name and asserts the behaviour of performQuery.
