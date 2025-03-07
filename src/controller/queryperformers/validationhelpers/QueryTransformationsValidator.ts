@@ -1,81 +1,53 @@
 import { InsightError } from "../../IInsightFacade";
 
-function isObject(obj: any): boolean {
-    return typeof obj === "object" && obj !== null && !Array.isArray(obj);
+function isObj(o: any): boolean {
+    return typeof o === "object" && o !== null && !Array.isArray(o);
 }
-
-function getAllowedFields(datasetKind: "rooms" | "sections"): string[] {
-    return datasetKind === "sections"
-        ? ["avg", "pass", "fail", "audit", "year"]
-        : ["lat", "lon", "seats"];
+function extractId(s: string): string {
+    return s.includes("_") ? s.split("_")[0] : "";
 }
-
-function getValidOps(): string[] {
-    return ["MAX", "MIN", "AVG", "SUM", "COUNT"];
+function ensure(cond: boolean, msg: string): void {
+    if (!cond) throw new InsightError(msg);
 }
-
-function validateApplyRule(
-    rule: any,
-    allowed: string[],
-    validOps: string[],
-    applyKeySet: Set<string>
-): void {
-    if (!isObject(rule)) throw new InsightError("Each APPLY rule must be an object");
-    const ruleKeys = Object.keys(rule);
-    if (ruleKeys.length !== 1) throw new InsightError("Each APPLY rule must have exactly one key");
-    const key = ruleKeys[0];
-    if (applyKeySet.has(key)) throw new InsightError(`Duplicate APPLY key: ${key}`);
-    applyKeySet.add(key);
-    const opObj = rule[key];
-    if (!isObject(opObj)) throw new InsightError("Each APPLY rule's value must be an object");
-    const opKeys = Object.keys(opObj);
-    if (opKeys.length !== 1 || !validOps.includes(opKeys[0])) {
-        throw new InsightError("Each APPLY rule must have exactly one operator: MAX, MIN, AVG, SUM, or COUNT");
-    }
-    if (["MAX", "MIN", "AVG", "SUM"].includes(opKeys[0])) {
-        const parts = opObj[opKeys[0]].split("_");
-        if (parts.length !== 2 || !allowed.includes(parts[1])) {
-            throw new InsightError(`Operator ${opKeys[0]} applied to non-numeric key ${opObj[opKeys[0]]}`);
-        }
-    }
-}
-
 
 export class TransformationsValidator {
-    public static validateTransformations(
-        transformations: any,
-        datasetKind: "rooms" | "sections"
-    ): void {
-        if (!isObject(transformations)) {
-            throw new InsightError("TRANSFORMATIONS must be an object");
-        }
-        const keys: string[] = Object.keys(transformations);
-        if (!keys.includes("GROUP") || !keys.includes("APPLY")) {
-            throw new InsightError("TRANSFORMATIONS must contain GROUP and APPLY");
-        }
-        if (!Array.isArray(transformations.GROUP) || transformations.GROUP.length === 0) {
-            throw new InsightError("GROUP must be a non-empty array");
-        }
-        if (!Array.isArray(transformations.APPLY)) {
-            throw new InsightError("APPLY must be an array");
-        }
-
-        const allowed: string[] = getAllowedFields(datasetKind);
-        const validOps: string[] = getValidOps();
-        const applyKeySet = new Set<string>();
-
-        for (const rule of transformations.APPLY) {
-            validateApplyRule(rule, allowed, validOps, applyKeySet);
-        }
+    public static validateTransformations(t: any, kind: "rooms" | "sections"): void {
+        ensure(isObj(t), "TRANSFORMATIONS must be an object");
+        const ks = Object.keys(t);
+        ensure(ks.includes("GROUP") && ks.includes("APPLY"), "TRANSFORMATIONS must contain GROUP and APPLY");
+        ensure(Array.isArray(t.GROUP) && t.GROUP.length > 0, "GROUP must be a non-empty array");
+        ensure(Array.isArray(t.APPLY), "APPLY must be an array");
+        const allow = kind === "sections" ? ["avg", "pass", "fail", "audit", "year"] : ["lat", "lon", "seats"],
+            valid = ["MAX", "MIN", "AVG", "SUM", "COUNT"],
+            aSet = new Set<string>(),
+            dsIds = new Set<string>();
+        t.APPLY.forEach((r: any) => {
+            ensure(isObj(r), "Each APPLY rule must be an object");
+            const rk = Object.keys(r);
+            ensure(rk.length === 1, "Each APPLY rule must have exactly one key");
+            const key = rk[0];
+            ensure(!aSet.has(key), `Duplicate APPLY key: ${key}`);
+            aSet.add(key);
+            const op = r[key];
+            ensure(isObj(op), "Each APPLY rule's value must be an object");
+            const opk = Object.keys(op);
+            ensure(opk.length === 1 && valid.includes(opk[0]), "Each APPLY rule must have exactly one operator: MAX, MIN, AVG, SUM, or COUNT");
+            if (opk[0] !== "COUNT") {
+                const parts = op[opk[0]].split("_");
+                ensure(parts.length === 2 && allow.includes(parts[1]),
+                    `Operator ${opk[0]} applied to non-numeric key ${op[opk[0]]}`);
+                dsIds.add(extractId(op[opk[0]]));
+            }
+        });
+        ensure(dsIds.size <= 1, "TRANSFORMATIONS must reference exactly one dataset");
     }
 
-    public static validateColumns(columns: string[], transformations: any): void {
-        const groupKeys: string[] = transformations.GROUP;
-        const applyKeys: string[] = transformations.APPLY.map((rule: any) => Object.keys(rule)[0]);
-        for (const col of columns) {
-            if (!groupKeys.includes(col) && !applyKeys.includes(col)) {
-                throw new InsightError(`Column "${col}" must appear in GROUP or be defined in APPLY`);
-            }
-        }
+    public static validateColumns(cols: string[], t: any): void {
+        const group: string[] = t.GROUP,
+            apply: string[] = t.APPLY.map((r: any) => Object.keys(r)[0]);
+        cols.forEach(c => {
+            ensure(group.includes(c) || apply.includes(c),
+                `Column "${c}" must appear in GROUP or be defined in APPLY`);
+        });
     }
 }
