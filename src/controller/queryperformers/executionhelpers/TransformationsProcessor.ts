@@ -20,13 +20,15 @@ const aggregators: { [op: string]: Aggregator } = {
 	MAX: (records, field) => Math.max(...records.map((r) => r[field] ?? 0)),
 	MIN: (records, field) => Math.min(...records.map((r) => r[field] ?? 0)),
 	SUM: (records, field) => {
-		const sum = records.reduce((acc, r) => acc.plus(new Decimal(r[field] ?? 0)), new Decimal(0));
+		const sum = records.reduce((acc, r) => acc.add(new Decimal(r[field] ?? 0)), new Decimal(0));
 		return Number(sum.toFixed(2));
 	},
 	AVG: (records, field) => {
-		const total = records.reduce((acc, r) => acc.plus(new Decimal(r[field] ?? 0)), new Decimal(0));
-		return Number(total.dividedBy(records.length).toFixed(2));
+		const total = records.reduce((acc, r) => acc.add(new Decimal(r[field] ?? 0)), new Decimal(0));
+		const avg = total.toNumber() / records.length;
+		return Number(avg.toFixed(2));
 	},
+
 	COUNT: (records, field) => new Set(records.map((r) => r[field])).size,
 };
 
