@@ -162,16 +162,6 @@ export function extractRoomsFromTable(
 		.filter(r => r !== null) as Room[];
 }
 
-/** Helper: Extracts the building full name from the document. */
-function getBuildingFullName(document: any, buildingInfo: { fullname?: string; shortname: string }): string {
-	const h1Elements = findElements(document, "h1");
-	for (const h1 of h1Elements) {
-		const text = extractText(h1);
-		if (text) return text;
-	}
-	return buildingInfo.fullname || buildingInfo.shortname;
-}
-
 /** Helper: Finds the room table in the document. */
 function findRoomTableInDocument(tables: any[]): any | null {
 	const byClass = tables.find(t => findElements(t, "td", "views-field-field-room-number").length > 0);
@@ -188,12 +178,11 @@ function findRoomTableInDocument(tables: any[]): any | null {
 /** Parses a building HTML file and extracts room information as Room instances. */
 export function parseBuildingHtml(
 	html: string,
-	buildingInfo: { shortname: string; address: string; lat: number; lon: number; fullname?: string }
+	buildingInfo: { shortname: string; address: string; lat: number; lon: number; fullname: string }
 ): Room[] {
 	const document = parse5.parse(html);
 	const tables = findElements(document, "table");
-	const fullName = getBuildingFullName(document, buildingInfo);
-	const infoForRows = { ...buildingInfo, fullname: fullName };
+	const infoForRows = { ...buildingInfo};
 	const roomTable = findRoomTableInDocument(tables);
 	if (!roomTable) return [];
 	return extractRoomsFromTable(roomTable, infoForRows);

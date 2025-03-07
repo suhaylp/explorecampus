@@ -1,0 +1,63 @@
+{
+	"title": "validGroupnApply",
+	"input": {
+		"WHERE": {
+			"AND": [
+				{
+					"IS": {
+						"rooms_furniture": "*les*"
+					}
+				},
+				{
+					"GT": {
+						"rooms_seats": 300
+					}
+				}
+			]
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"rooms_shortname",
+				"rooms_lon",
+				"maxS"
+			],
+			"ORDER": {
+				"dir": "DOWN",
+				"keys": [
+					"rooms_lon"
+				]
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"rooms_shortname",
+				"rooms_lon"
+			],
+			"APPLY": [
+				{
+					"maxS": {
+						"SUM": "rooms_seats"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": false,
+	"expected": [
+		{
+			"rooms_shortname": "OSBO",
+			"rooms_lon": -123.24467,
+			"maxS": 442
+		},
+		{
+			"rooms_shortname": "LSC",
+			"rooms_lon": -123.24494,
+			"maxS": 700
+		},
+		{
+			"rooms_shortname": "HEBB",
+			"rooms_lon": -123.25165,
+			"maxS": 375
+		}
+	]
+}
