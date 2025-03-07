@@ -4,8 +4,6 @@ import { OptionsValidator } from "./validationhelpers/QueryOptionsValidator";
 import { TransformationsValidator } from "./validationhelpers/QueryTransformationsValidator";
 
 export class QueryValidator {
-
-
 	public static validateQuery(query: any, datasetKind: "rooms" | "sections"): void {
 		if (typeof query !== "object" || query === null || Array.isArray(query)) {
 			throw new InsightError("Query must be a non-null object");
@@ -35,8 +33,6 @@ export class QueryValidator {
 			throw new InsightError("Query must reference exactly one dataset in WHERE and OPTIONS");
 		}
 	}
-
-
 
 	private static extractDatasetIdFromColumns(columns: string[]): string {
 		const firstColumn = columns[0];

@@ -6,7 +6,6 @@ export class QueryOrderValidator {
 			return;
 		}
 
-
 		if (typeof order === "string") {
 			const trimmedOrder = order.trim();
 			if (trimmedOrder.length === 0) {

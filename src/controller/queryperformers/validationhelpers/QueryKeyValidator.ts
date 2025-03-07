@@ -1,14 +1,21 @@
-import {InsightError} from "../../IInsightFacade";
+import { InsightError } from "../../IInsightFacade";
 
 export type SKey = string;
 export type MKey = string;
 
-
 const allowedSectionsSFields: string[] = ["dept", "id", "instructor", "title", "uuid"];
 const allowedSectionsMFields: string[] = ["avg", "pass", "fail", "audit", "year"];
 
-
-const allowedRoomsSFields: string[] = ["fullname", "shortname", "number", "name", "address", "type", "furniture", "href"];
+const allowedRoomsSFields: string[] = [
+	"fullname",
+	"shortname",
+	"number",
+	"name",
+	"address",
+	"type",
+	"furniture",
+	"href",
+];
 const allowedRoomsMFields: string[] = ["lat", "lon", "seats"];
 
 export function validateSField(sfield: string, datasetKind: "sections" | "rooms"): void {
@@ -71,4 +78,3 @@ export function validateMKey(mkey: string, datasetKind: "rooms" | "sections"): v
 	// }
 	validateMField(mfield, datasetKind);
 }
-

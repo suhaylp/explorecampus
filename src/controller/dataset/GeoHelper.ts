@@ -6,7 +6,6 @@ export interface GeoResponse {
 	error?: string;
 }
 
-
 export async function fetchGeolocation(address: string): Promise<{ lat: number; lon: number }> {
 	return new Promise((resolve, reject) => {
 		const encodedAddress = encodeURIComponent(address);

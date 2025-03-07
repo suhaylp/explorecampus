@@ -1460,12 +1460,9 @@ describe("InsightFacade", function () {
 		it("[sectionsValid/testValid.json] multipleGroupKeys", checkQuery);
 		it("[sectionsValid/weirdValid.json] multipleGroupKeys", checkQuery);
 
-
 		it("[sectionsInvalid/invalidKeyId.json] invalidKeyId", checkQuery);
 		it("[sectionsInvalid/invalidKeyColumns.json] invalidKeyColumns", checkQuery);
 		it("[sectionsInvalid/transIdCheck.json] invalidKeyColumns", checkQuery);
-
-
 
 		it("[valid/simple.json] SELECT dept, avg WHERE avg > 97", checkQuery);
 		it("[valid/both_ends_wc.json] wc text wc", checkQuery);
@@ -1519,9 +1516,8 @@ describe("InsightFacade", function () {
 		it("[invalid/eqNotObject.json] EQ not object", checkQuery);
 	});
 
-
 	describe("InsightFacade performQuery - Grouping by Department", function () {
-		this.timeout(5000); // Increase timeout in case of slow operations
+		// this.timeout(5000); // Increase timeout in case of slow operations
 
 		let insightFacade: InsightFacade;
 		const sampleSectionsData = [
@@ -1531,7 +1527,7 @@ describe("InsightFacade", function () {
 			{ dept: "MATH", fail: 35, audit: 3, id: "201" },
 			{ dept: "BIOL", fail: 40, audit: 1.5, id: "150" },
 			{ dept: "HIST", fail: 20, audit: 1, id: "220" },
-			{ dept: "HIST", fail: 10, audit: 2, id: "230" }
+			{ dept: "HIST", fail: 10, audit: 2, id: "230" },
 		];
 
 		before(async () => {
@@ -1547,37 +1543,37 @@ describe("InsightFacade", function () {
 				WHERE: {},
 				OPTIONS: {
 					COLUMNS: ["sections_dept", "highestFail", "averageAudit", "uniqueCourses"],
-					ORDER: { dir: "DOWN", keys: ["highestFail"] }
+					ORDER: { dir: "DOWN", keys: ["highestFail"] },
 				},
 				TRANSFORMATIONS: {
 					GROUP: ["sections_dept"],
 					APPLY: [
 						{ highestFail: { MAX: "sections_fail" } },
 						{ averageAudit: { AVG: "sections_audit" } },
-						{ uniqueCourses: { COUNT: "sections_id" } }
-					]
-				}
+						{ uniqueCourses: { COUNT: "sections_id" } },
+					],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			expect(results).to.be.an("array").with.lengthOf(4);
+			const four = 4;
+			expect(results).to.be.an("array").with.lengthOf(four);
 
 			const expectedResults = [
 				{ sections_dept: "CPSC", highestFail: 50, averageAudit: 2.5, uniqueCourses: 2 },
 				{ sections_dept: "MATH", highestFail: 45, averageAudit: 2.75, uniqueCourses: 2 },
 				{ sections_dept: "BIOL", highestFail: 40, averageAudit: 1.5, uniqueCourses: 1 },
-				{ sections_dept: "HIST", highestFail: 20, averageAudit: 1.5, uniqueCourses: 2 }
+				{ sections_dept: "HIST", highestFail: 20, averageAudit: 1.5, uniqueCourses: 2 },
 			];
 
 			expectedResults.forEach((expected, index) => {
 				expect(results[index].sections_dept).to.equal(expected.sections_dept);
 				expect(results[index].highestFail).to.equal(expected.highestFail);
 				expect(results[index].uniqueCourses).to.equal(expected.uniqueCourses);
-				expect(results[index].averageAudit).to.be.closeTo(expected.averageAudit, 0.01);
+				expect(results[index].averageAudit).to.equal(expected.averageAudit);
 			});
 		});
 	});
-
 
 	describe("Data Persistence", function () {
 		let persistenceFacade: InsightFacade;

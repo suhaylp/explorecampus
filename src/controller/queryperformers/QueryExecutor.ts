@@ -10,9 +10,6 @@ export class QueryExecutor {
 	public static executeQuery(query: any, dataset: any[]): any[] {
 		const filtered = dataset.filter((record) => FilterEvaluator.evaluateFilter(query.WHERE, record));
 
-
-
-
 		let processedData = filtered;
 		if ("TRANSFORMATIONS" in query) {
 			const { GROUP, APPLY } = query.TRANSFORMATIONS;
