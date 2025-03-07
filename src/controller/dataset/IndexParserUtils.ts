@@ -23,7 +23,6 @@ function findElementsByTagAndClass(node: any, tagName: string, className: string
 	return results;
 }
 
-
 function findElementsByTag(node: any, tag: string): any[] {
 	let results: any[] = [];
 	if (node.nodeName === tag) {
@@ -38,7 +37,12 @@ function findElementsByTag(node: any, tag: string): any[] {
 }
 
 function extractText(node: any): string {
-	return node.childNodes ? node.childNodes.map((child: any) => child.value || "").join("").trim() : "";
+	return node.childNodes
+		? node.childNodes
+				.map((child: any) => child.value || "")
+				.join("")
+				.trim()
+		: "";
 }
 
 export function parseIndexHtml(html: string): BuildingData[] {
@@ -67,7 +71,6 @@ export function parseIndexHtml(html: string): BuildingData[] {
 
 	return buildings;
 }
-
 
 //
 // export function parseIndexHtml(html: string): BuildingData[] {

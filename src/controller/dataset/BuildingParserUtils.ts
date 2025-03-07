@@ -62,7 +62,12 @@ function findElements(node: any, tagName: string, className?: string): any[] {
 
 /** Helper: Extracts text content from a node. */
 function extractText(node: any): string {
-	return node.childNodes ? node.childNodes.map((child: any) => child.value || "").join("").trim() : "";
+	return node.childNodes
+		? node.childNodes
+				.map((child: any) => child.value || "")
+				.join("")
+				.trim()
+		: "";
 }
 
 /** Helper: Extracts the room number from a row. */
@@ -118,7 +123,7 @@ function extractRoomHref(row: any): string {
 /** Processes a single row into a Room instance or returns null if invalid. */
 function processRoomRow(
 	row: any,
-	buildingInfo: { shortname: string; fullname?: string; address: string; lat: number; lon: number; }
+	buildingInfo: { shortname: string; fullname?: string; address: string; lat: number; lon: number }
 ): Room | null {
 	const cells = findElements(row, "td");
 	const cellsLength = 4;
@@ -158,21 +163,32 @@ export function extractRoomsFromTable(
 	buildingInfo: { shortname: string; address: string; lat: number; lon: number; fullname?: string }
 ): Room[] {
 	return getRoomRows(roomTable)
-		.map(row => processRoomRow(row, buildingInfo))
-		.filter(r => r !== null) as Room[];
+		.map((row) => processRoomRow(row, buildingInfo))
+		.filter((r) => r !== null) as Room[];
 }
 
 /** Helper: Finds the room table in the document. */
 function findRoomTableInDocument(tables: any[]): any | null {
-	const byClass = tables.find(t => findElements(t, "td", "views-field-field-room-number").length > 0);
+	const byClass = tables.find((t) => findElements(t, "td", "views-field-field-room-number").length > 0);
 	if (byClass) return byClass;
-	return tables.find(t => {
-		const rows = findElements(t, "tr");
-		if (rows.length === 0) return false;
-		const headerText = rows[0].childNodes ? rows[0].childNodes.map((n: any) => n.value || "").join(" ").toLowerCase() : "";
-		return headerText.includes("room") && headerText.includes("capacity") &&
-			headerText.includes("furniture") && headerText.includes("room type");
-	}) || null;
+	return (
+		tables.find((t) => {
+			const rows = findElements(t, "tr");
+			if (rows.length === 0) return false;
+			const headerText = rows[0].childNodes
+				? rows[0].childNodes
+						.map((n: any) => n.value || "")
+						.join(" ")
+						.toLowerCase()
+				: "";
+			return (
+				headerText.includes("room") &&
+				headerText.includes("capacity") &&
+				headerText.includes("furniture") &&
+				headerText.includes("room type")
+			);
+		}) || null
+	);
 }
 
 /** Parses a building HTML file and extracts room information as Room instances. */
@@ -182,7 +198,7 @@ export function parseBuildingHtml(
 ): Room[] {
 	const document = parse5.parse(html);
 	const tables = findElements(document, "table");
-	const infoForRows = { ...buildingInfo};
+	const infoForRows = { ...buildingInfo };
 	const roomTable = findRoomTableInDocument(tables);
 	if (!roomTable) return [];
 	return extractRoomsFromTable(roomTable, infoForRows);

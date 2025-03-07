@@ -57,99 +57,99 @@ describe("InsightFacade", function () {
 
 	// UNCOMMENT THIS
 	// COME BACK
-	// describe("New PerformQuery", function () {
-	// 	/**
-	// 	 * Loads the TestQuery specified in the test name and asserts the behaviour of performQuery.
-	// 	 *
-	// 	 * Note: the 'this' parameter is automatically set by Mocha and contains information about the test.
-	// 	 */
-	// 	async function checkQuery(this: Mocha.Context): Promise<void> {
-	// 		if (!this.test) {
-	// 			throw new Error(
-	// 				"Invalid call to checkQuery." +
-	// 					"Usage: 'checkQuery' must be passed as the second parameter of Mocha's it(..) function." +
-	// 					"Do not invoke the function directly."
-	// 			);
-	// 		}
-	// 		// Destructuring assignment to reduce property accesses
-	// 		const { input, expected, errorExpected } = await loadTestQuery(this.test.title);
-	// 		// COMMENTED OUT
-	// 		let result: InsightResult[] = []; // dummy value before being reassigned
-	// 		try {
-	// 			result = await facade.performQuery(input);
-	// 		} catch (err) {
-	// 			if (!errorExpected) {
-	// 				// errorExpected is false, expected is a result of tuples
-	// 				expect.fail(`performQuery threw unexpected error: ${err}`);
-	// 			}
-	//
-	// 			if (expected === "ResultTooLargeError") {
-	// 				expect(err).to.be.instanceof(ResultTooLargeError);
-	// 			} else if (expected === "InsightError") {
-	// 				expect(err).to.be.instanceof(InsightError);
-	// 			}
-	// 			// expect(err).to.be.instanceOf(expected);
-	// 			return; // optional?
-	// 		}
-	//
-	// 		// expected an error but did not catch
-	// 		if (errorExpected) {
-	// 			// errorExpected is true, expect is error
-	// 			expect.fail(`performQuery resolved when it should have rejected with ${expected}`);
-	// 		}
-	//
-	// 		expect(result).to.have.deep.members(expected);
-	// 		return; // optional?
-	// 	}
-	//
-	// 	before(async function () {
-	// 		await clearDisk();
-	// 		facade = new InsightFacade();
-	//
-	// 		// const timo = 10000;
-	// 		// this.timeout(timo);
-	// 		try {
-	// 			await clearDisk();
-	// 			const roomsData = await getContentFromArchives("campus.zip");
-	// 			await facade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
-	// 		} catch (err) {
-	// 			throw err;
-	// 		}
-	// 	});
-	//
-	// 	after(async function () {
-	// 		await clearDisk();
-	// 	});
-	//
-	// 	// beforeEach(async function (){
-	// 	// 	facade = new InsightFacade();
-	// 	// });
-	//
-	// 	it("[newValid/minQuery.json] Min Operation Query", checkQuery);
-	// 	it("[newValid/avgQuery.json] Avg Operation Query", checkQuery);
-	// 	it("[newValid/sumQuery.json] Sum Operation Query", checkQuery);
-	// 	it("[newValid/countQuery.json] Count Operation Query", checkQuery);
-	// 	it("[newValid/filteredCountQuery.json] Filtered Count Operation Query", checkQuery);
-	// 	it("[newValid/complex1.json] Complex", checkQuery);
-	// 	it("[newValid/allColsRows.json] allColsRows", checkQuery);
-	// 	it("[newValid/multOrderKeys.json] multOrderKeys", checkQuery);
-	// 	it("[newValid/twoApplyRules.json] twoApplyRules", checkQuery);
-	// 	it("[newValid/validGroupnApply.json] validGroupnApply", checkQuery);
-	// 	it("[newValid/validOrderUp.json] validOrderUp", checkQuery);
-	//
-	// 	it("[newInvalid/badApplyKey.json] badApplyKey", checkQuery);
-	// 	it("[newInvalid/badTransOp.json] badTransOp", checkQuery);
-	// 	it("[newInvalid/duplicateApplyKey.json] duplicateApplyKey", checkQuery);
-	// 	it("[newInvalid/emptyGroup.json] emptyGroup", checkQuery);
-	// 	it("[newInvalid/noApply.json] noApply", checkQuery);
-	// 	it("[newInvalid/noGroup.json] noGroup", checkQuery);
-	// 	it("[newInvalid/noOrderDir.json] noOrderDir", checkQuery);
-	// 	it("[newInvalid/noOrderkeys.json] noOrderkeys", checkQuery);
-	// 	it("[newInvalid/orderKeysBadArray.json] orderKeysBadArray", checkQuery);
-	// 	it("[newInvalid/orderKeysEmptyArray.json] orderKeysEmptyArray", checkQuery);
-	// 	it("[newInvalid/invalidOrderDirection.json] invalidOrderDirection", checkQuery);
-	// 	it("[newInvalid/invalidKeyType.json] invalid Key Type", checkQuery);
-	// });
+	describe("New PerformQuery", function () {
+		/**
+		 * Loads the TestQuery specified in the test name and asserts the behaviour of performQuery.
+		 *
+		 * Note: the 'this' parameter is automatically set by Mocha and contains information about the test.
+		 */
+		async function checkQuery(this: Mocha.Context): Promise<void> {
+			if (!this.test) {
+				throw new Error(
+					"Invalid call to checkQuery." +
+						"Usage: 'checkQuery' must be passed as the second parameter of Mocha's it(..) function." +
+						"Do not invoke the function directly."
+				);
+			}
+			// Destructuring assignment to reduce property accesses
+			const { input, expected, errorExpected } = await loadTestQuery(this.test.title);
+			// COMMENTED OUT
+			let result: InsightResult[] = []; // dummy value before being reassigned
+			try {
+				result = await facade.performQuery(input);
+			} catch (err) {
+				if (!errorExpected) {
+					// errorExpected is false, expected is a result of tuples
+					expect.fail(`performQuery threw unexpected error: ${err}`);
+				}
+
+				if (expected === "ResultTooLargeError") {
+					expect(err).to.be.instanceof(ResultTooLargeError);
+				} else if (expected === "InsightError") {
+					expect(err).to.be.instanceof(InsightError);
+				}
+				// expect(err).to.be.instanceOf(expected);
+				return; // optional?
+			}
+
+			// expected an error but did not catch
+			if (errorExpected) {
+				// errorExpected is true, expect is error
+				expect.fail(`performQuery resolved when it should have rejected with ${expected}`);
+			}
+
+			expect(result).to.have.deep.members(expected);
+			return; // optional?
+		}
+
+		before(async function () {
+			await clearDisk();
+			facade = new InsightFacade();
+
+			// const timo = 10000;
+			// this.timeout(timo);
+			try {
+				// await clearDisk();
+				const roomsData = await getContentFromArchives("campus.zip");
+				await facade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
+			} catch (err) {
+				throw err;
+			}
+		});
+
+		after(async function () {
+			await clearDisk();
+		});
+
+		// beforeEach(async function (){
+		// 	facade = new InsightFacade();
+		// });
+
+		it("[newValid/minQuery.json] Min Operation Query", checkQuery);
+		it("[newValid/avgQuery.json] Avg Operation Query", checkQuery);
+		it("[newValid/sumQuery.json] Sum Operation Query", checkQuery);
+		it("[newValid/countQuery.json] Count Operation Query", checkQuery);
+		it("[newValid/filteredCountQuery.json] Filtered Count Operation Query", checkQuery);
+		it("[newValid/complex1.json] Complex", checkQuery);
+		it("[newValid/allColsRows.json] allColsRows", checkQuery);
+		it("[newValid/multOrderKeys.json] multOrderKeys", checkQuery);
+		it("[newValid/twoApplyRules.json] twoApplyRules", checkQuery);
+		it("[newValid/validGroupnApply.json] validGroupnApply", checkQuery);
+		it("[newValid/validOrderUp.json] validOrderUp", checkQuery);
+
+		it("[newInvalid/badApplyKey.json] badApplyKey", checkQuery);
+		it("[newInvalid/badTransOp.json] badTransOp", checkQuery);
+		it("[newInvalid/duplicateApplyKey.json] duplicateApplyKey", checkQuery);
+		it("[newInvalid/emptyGroup.json] emptyGroup", checkQuery);
+		it("[newInvalid/noApply.json] noApply", checkQuery);
+		it("[newInvalid/noGroup.json] noGroup", checkQuery);
+		it("[newInvalid/noOrderDir.json] noOrderDir", checkQuery);
+		it("[newInvalid/noOrderkeys.json] noOrderkeys", checkQuery);
+		it("[newInvalid/orderKeysBadArray.json] orderKeysBadArray", checkQuery);
+		it("[newInvalid/orderKeysEmptyArray.json] orderKeysEmptyArray", checkQuery);
+		it("[newInvalid/invalidOrderDirection.json] invalidOrderDirection", checkQuery);
+		it("[newInvalid/invalidKeyType.json] invalid Key Type", checkQuery);
+	});
 
 	// BELOW THIS LINE ARE OLD ACQUIRING TESTS
 
@@ -1057,6 +1057,11 @@ describe("InsightFacade", function () {
 			);
 		});
 
+		it("should accept valid rooms", async function () {
+			const roomsData = await getContentFromArchives("campus.zip");
+			await expect(facade.addDataset("roomsID", roomsData, InsightDatasetKind.Rooms)).to.eventually.include("roomsID");
+		});
+
 		it("should reject with  an empty dataset id 2", async function () {
 			// Read the "Free Mutant Walkthrough" in the spec for tips on how to get started!
 			try {
@@ -1453,6 +1458,28 @@ describe("InsightFacade", function () {
 		// Examples demonstrating how to test performQuery using the JSON Test Queries.
 		// The relative path to the query file must be given in square brackets.
 		// WRITE it TESTS HERE
+		it("[sectionsValid/multipleGroupKeys.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/validCountSections.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/validMultAppKeysSections.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/validTransEmptySectionsResult.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/testValid.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/weirdValid.json] multipleGroupKeys", checkQuery);
+
+		it("[sectionsInvalid/invalidKeyId.json] invalidKeyId", checkQuery);
+		it("[sectionsInvalid/invalidKeyColumns.json] invalidKeyColumns", checkQuery);
+		it("[sectionsInvalid/transIdCheck.json] transIdCheck", checkQuery);
+		it("[sectionsInvalid/invalidKeyCol.json] invalidKeyCol", checkQuery);
+		it("[sectionsInvalid/invalidKeyGroup.json] invalidKeyGroup", checkQuery);
+		it("[sectionsInvalid/twoDataLT.json] twoDataLT", checkQuery);
+		it("[sectionsInvalid/twoDatasets.json] twoDatasets", checkQuery);
+		it("[sectionsInvalid/twoDatasetsAND.json] twoDatasetsAND", checkQuery);
+		it("[sectionsInvalid/twoDatasetsNested.json] twoDatasetsNested", checkQuery);
+		it("[sectionsInvalid/twoDatasetsOR.json] twoDatasetsOR", checkQuery);
+		it("[sectionsInvalid/twoKeyApply.json] twoKeyApply", checkQuery);
+		it("[sectionsInvalid/underscoreAppKey.json] underscoreAppKey", checkQuery);
+		it("[sectionsInvalid/badDatasetTrans.json] badDatasetTrans", checkQuery);
+		it("[sectionsInvalid/badDatasetTrans2.json] badDatasetTrans2", checkQuery);
+
 		it("[valid/simple.json] SELECT dept, avg WHERE avg > 97", checkQuery);
 		it("[valid/both_ends_wc.json] wc text wc", checkQuery);
 		it("[valid/complex.json] complex", checkQuery);
@@ -1503,6 +1530,65 @@ describe("InsightFacade", function () {
 		it("[invalid/noColumns.json] No columns", checkQuery);
 		it("[invalid/optionNoColumns.json] Option no columns", checkQuery);
 		it("[invalid/eqNotObject.json] EQ not object", checkQuery);
+	});
+
+	describe("InsightFacade performQuery - Grouping by Department", function () {
+		// this.timeout(5000); // Increase timeout in case of slow operations
+
+		let insightFacade: InsightFacade;
+		const sampleSectionsData = [
+			{ dept: "CPSC", fail: 50, audit: 3, id: "110" },
+			{ dept: "CPSC", fail: 40, audit: 2, id: "210" },
+			{ dept: "MATH", fail: 45, audit: 2.5, id: "101" },
+			{ dept: "MATH", fail: 35, audit: 3, id: "201" },
+			{ dept: "BIOL", fail: 40, audit: 1.5, id: "150" },
+			{ dept: "HIST", fail: 20, audit: 1, id: "220" },
+			{ dept: "HIST", fail: 10, audit: 2, id: "230" },
+		];
+
+		before(async () => {
+			insightFacade = new InsightFacade();
+			(insightFacade as any).datasets.set("sections", {
+				meta: { id: "sections", kind: InsightDatasetKind.Sections, numRows: sampleSectionsData.length },
+				data: sampleSectionsData,
+			});
+		});
+
+		it("should group by sections_dept and calculate MAX fail, AVG audit, COUNT courses", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["sections_dept", "highestFail", "averageAudit", "uniqueCourses"],
+					ORDER: { dir: "DOWN", keys: ["highestFail"] },
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["sections_dept"],
+					APPLY: [
+						{ highestFail: { MAX: "sections_fail" } },
+						{ averageAudit: { AVG: "sections_audit" } },
+						{ uniqueCourses: { COUNT: "sections_id" } },
+					],
+				},
+			};
+
+			const results = await insightFacade.performQuery(query);
+			const four = 4;
+			expect(results).to.be.an("array").with.lengthOf(four);
+
+			const expectedResults = [
+				{ sections_dept: "CPSC", highestFail: 50, averageAudit: 2.5, uniqueCourses: 2 },
+				{ sections_dept: "MATH", highestFail: 45, averageAudit: 2.75, uniqueCourses: 2 },
+				{ sections_dept: "BIOL", highestFail: 40, averageAudit: 1.5, uniqueCourses: 1 },
+				{ sections_dept: "HIST", highestFail: 20, averageAudit: 1.5, uniqueCourses: 2 },
+			];
+
+			expectedResults.forEach((expected, index) => {
+				expect(results[index].sections_dept).to.equal(expected.sections_dept);
+				expect(results[index].highestFail).to.equal(expected.highestFail);
+				expect(results[index].uniqueCourses).to.equal(expected.uniqueCourses);
+				expect(results[index].averageAudit).to.equal(expected.averageAudit);
+			});
+		});
 	});
 
 	describe("Data Persistence", function () {

@@ -16,7 +16,6 @@ export class QueryColumnsValidator {
 				const [datasetId] = trimmedColumn.split("_");
 				datasetIds.add(datasetId);
 			}
-
 		}
 
 		if (datasetIds.size > 1) {

@@ -1,0 +1,177 @@
+{
+	"title": "multipleGroupKeys",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_avg": 98
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_instructor",
+				"sections_title",
+				"maxAvg",
+				"minAvg",
+				"uniqueIds"
+			],
+			"ORDER": {
+				"dir": "DOWN",
+				"keys": [
+					"maxAvg"
+				]
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"sections_instructor",
+				"sections_title"
+			],
+			"APPLY": [
+				{
+					"maxAvg": {
+						"MAX": "sections_avg"
+					}
+				},
+				{
+					"minAvg": {
+						"MIN": "sections_avg"
+					}
+				},
+				{
+					"uniqueIds": {
+						"COUNT": "sections_uuid"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": false,
+	"expected": [
+		{
+			"sections_instructor": "gomez, jose",
+			"sections_title": "algb topology i",
+			"maxAvg": 99.78,
+			"minAvg": 99.78,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "",
+			"sections_title": "algb topology i",
+			"maxAvg": 99.78,
+			"minAvg": 99.78,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "cox, daniel",
+			"sections_title": "career planning",
+			"maxAvg": 99.19,
+			"minAvg": 99.19,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "frank, erica",
+			"sections_title": "work int health",
+			"maxAvg": 98.98,
+			"minAvg": 98.98,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "",
+			"sections_title": "work int health",
+			"maxAvg": 98.98,
+			"minAvg": 98.98,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "grow, laura",
+			"sections_title": "educ stds autism",
+			"maxAvg": 98.8,
+			"minAvg": 98.58,
+			"uniqueIds": 3
+		},
+		{
+			"sections_instructor": "",
+			"sections_title": "educ stds autism",
+			"maxAvg": 98.76,
+			"minAvg": 98.58,
+			"uniqueIds": 2
+		},
+		{
+			"sections_instructor": "coria, lino",
+			"sections_title": "multimedia sys",
+			"maxAvg": 98.75,
+			"minAvg": 98.75,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "",
+			"sections_title": "multimedia sys",
+			"maxAvg": 98.75,
+			"minAvg": 98.75,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "brew, nancy",
+			"sections_title": "cl pro prim care",
+			"maxAvg": 98.71,
+			"minAvg": 98.71,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "",
+			"sections_title": "cl pro prim care",
+			"maxAvg": 98.71,
+			"minAvg": 98.21,
+			"uniqueIds": 2
+		},
+		{
+			"sections_instructor": "cole, kenneth",
+			"sections_title": "assess lrn diffi",
+			"maxAvg": 98.7,
+			"minAvg": 98.08,
+			"uniqueIds": 2
+		},
+		{
+			"sections_instructor": "",
+			"sections_title": "fam nrs pract",
+			"maxAvg": 98.58,
+			"minAvg": 98.5,
+			"uniqueIds": 3
+		},
+		{
+			"sections_instructor": "burrows, marlene;harding, jillian;krist, jennifer;mccuaig, fairleth",
+			"sections_title": "fam nrs pract",
+			"maxAvg": 98.5,
+			"minAvg": 98.5,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "cannon, joanna",
+			"sections_title": "dev el sk df&hrd",
+			"maxAvg": 98.45,
+			"minAvg": 98.45,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "",
+			"sections_title": "dev el sk df&hrd",
+			"maxAvg": 98.45,
+			"minAvg": 98.45,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "",
+			"sections_title": "assess lrn diffi",
+			"maxAvg": 98.36,
+			"minAvg": 98.36,
+			"uniqueIds": 1
+		},
+		{
+			"sections_instructor": "krist, jennifer",
+			"sections_title": "cl pro prim care",
+			"maxAvg": 98.21,
+			"minAvg": 98.21,
+			"uniqueIds": 1
+		}
+	]
+}
