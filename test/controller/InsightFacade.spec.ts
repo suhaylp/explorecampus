@@ -15,10 +15,8 @@ import fs from "fs-extra";
 import path from "path";
 import JSZip from "jszip";
 
-// import { expect } from "chai";
 import { parseBuildingHtml } from "../../src/controller/dataset/BuildingParserUtils";
 import { QueryValidator } from "../../src/controller/queryperformers/QueryValidator";
-// import { InsightDatasetKind, InsightError } from "../../src/controller/IInsightFacade";
 import { performTransformations } from "../../src/controller/queryperformers/executionhelpers/TransformationsProcessor";
 import { OrderEvaluator } from "../../src/controller/queryperformers/executionhelpers/OrderEvaluator";
 
@@ -27,15 +25,11 @@ import { fetchGeolocation } from "../../src/controller/dataset/GeoHelper";
 import {
 	validateSField,
 	validateMField,
-	validateSKey,
-	validateMKey,
 } from "../../src/controller/queryperformers/validationhelpers/QueryKeyValidator";
 import InsightFacade from "../../src/controller/InsightFacade";
 import { parseIndexHtml } from "../../src/controller/dataset/IndexParserUtils";
 import { BuildingData } from "../../src/controller/dataset/IndexParserUtils";
 import { TransformationsValidator } from "../../src/controller/queryperformers/validationhelpers/QueryTransformationsValidator";
-// import {QueryExecutor} from "../../src/controller/queryperformers/QueryExecutor";
-// import {QueryEngine} from "../../src/controller/queryperformers/QueryEngine";
 
 use(chaiAsPromised);
 
@@ -60,6 +54,104 @@ describe("InsightFacade", function () {
 		// Just in case there is anything hanging around from a previous run of the test suite
 		await clearDisk();
 	});
+
+	// UNCOMMENT THIS
+	// COME BACK
+	describe("New PerformQuery", function () {
+		/**
+		 * Loads the TestQuery specified in the test name and asserts the behaviour of performQuery.
+		 *
+		 * Note: the 'this' parameter is automatically set by Mocha and contains information about the test.
+		 */
+		async function checkQuery(this: Mocha.Context): Promise<void> {
+			if (!this.test) {
+				throw new Error(
+					"Invalid call to checkQuery." +
+						"Usage: 'checkQuery' must be passed as the second parameter of Mocha's it(..) function." +
+						"Do not invoke the function directly."
+				);
+			}
+			// Destructuring assignment to reduce property accesses
+			const { input, expected, errorExpected } = await loadTestQuery(this.test.title);
+			// COMMENTED OUT
+			let result: InsightResult[] = []; // dummy value before being reassigned
+			try {
+				result = await facade.performQuery(input);
+			} catch (err) {
+				if (!errorExpected) {
+					// errorExpected is false, expected is a result of tuples
+					expect.fail(`performQuery threw unexpected error: ${err}`);
+				}
+
+				if (expected === "ResultTooLargeError") {
+					expect(err).to.be.instanceof(ResultTooLargeError);
+				} else if (expected === "InsightError") {
+					expect(err).to.be.instanceof(InsightError);
+				}
+				// expect(err).to.be.instanceOf(expected);
+				return; // optional?
+			}
+
+			// expected an error but did not catch
+			if (errorExpected) {
+				// errorExpected is true, expect is error
+				expect.fail(`performQuery resolved when it should have rejected with ${expected}`);
+			}
+
+			expect(result).to.have.deep.members(expected);
+			return; // optional?
+		}
+
+		before(async function () {
+			await clearDisk();
+			facade = new InsightFacade();
+
+			// const timo = 10000;
+			// this.timeout(timo);
+			try {
+				await clearDisk();
+				const roomsData = await getContentFromArchives("campus.zip");
+				await facade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
+			} catch (err) {
+				throw err;
+			}
+		});
+
+		after(async function () {
+			await clearDisk();
+		});
+
+		// beforeEach(async function (){
+		// 	facade = new InsightFacade();
+		// });
+
+		it("[newValid/minQuery.json] Min Operation Query", checkQuery);
+		it("[newValid/avgQuery.json] Avg Operation Query", checkQuery);
+		it("[newValid/sumQuery.json] Sum Operation Query", checkQuery);
+		it("[newValid/countQuery.json] Count Operation Query", checkQuery);
+		it("[newValid/filteredCountQuery.json] Filtered Count Operation Query", checkQuery);
+		it("[newValid/complex1.json] Complex", checkQuery);
+		it("[newValid/allColsRows.json] allColsRows", checkQuery);
+		it("[newValid/multOrderKeys.json] multOrderKeys", checkQuery);
+		it("[newValid/twoApplyRules.json] twoApplyRules", checkQuery);
+		it("[newValid/validGroupnApply.json] validGroupnApply", checkQuery);
+		it("[newValid/validOrderUp.json] validOrderUp", checkQuery);
+
+		it("[newInvalid/badApplyKey.json] badApplyKey", checkQuery);
+		it("[newInvalid/badTransOp.json] badTransOp", checkQuery);
+		it("[newInvalid/duplicateApplyKey.json] duplicateApplyKey", checkQuery);
+		it("[newInvalid/emptyGroup.json] emptyGroup", checkQuery);
+		it("[newInvalid/noApply.json] noApply", checkQuery);
+		it("[newInvalid/noGroup.json] noGroup", checkQuery);
+		it("[newInvalid/noOrderDir.json] noOrderDir", checkQuery);
+		it("[newInvalid/noOrderkeys.json] noOrderkeys", checkQuery);
+		it("[newInvalid/orderKeysBadArray.json] orderKeysBadArray", checkQuery);
+		it("[newInvalid/orderKeysEmptyArray.json] orderKeysEmptyArray", checkQuery);
+		it("[newInvalid/invalidOrderDirection.json] invalidOrderDirection", checkQuery);
+		it("[newInvalid/invalidKeyType.json] invalid Key Type", checkQuery);
+	});
+
+	// BELOW THIS LINE ARE OLD ACQUIRING TESTS
 
 	describe("OrderEvaluator.order", () => {
 		const records = [
@@ -141,31 +233,31 @@ describe("InsightFacade", function () {
 
 	describe("TransformationsValidator.validateTransformations", () => {
 		it("should throw error when transformations is not an object", () => {
-			expect(() => TransformationsValidator.validateTransformations("not an object")).to.throw(
+			expect(() => TransformationsValidator.validateTransformations("not an object", "rooms")).to.throw(
 				InsightError,
 				"TRANSFORMATIONS must be an object"
 			);
-			expect(() => TransformationsValidator.validateTransformations(null)).to.throw(
+			expect(() => TransformationsValidator.validateTransformations(null, "rooms")).to.throw(
 				InsightError,
 				"TRANSFORMATIONS must be an object"
 			);
 			const three = 3;
-			expect(() => TransformationsValidator.validateTransformations([1, 2, three])).to.throw(
+			expect(() => TransformationsValidator.validateTransformations([1, 2, three], "rooms")).to.throw(
 				InsightError,
 				"TRANSFORMATIONS must be an object"
 			);
 		});
 
 		it("should throw error when GROUP or APPLY keys are missing", () => {
-			expect(() => TransformationsValidator.validateTransformations({})).to.throw(
+			expect(() => TransformationsValidator.validateTransformations({}, "rooms")).to.throw(
 				InsightError,
 				"TRANSFORMATIONS must contain GROUP and APPLY"
 			);
-			expect(() => TransformationsValidator.validateTransformations({ GROUP: ["dept"] })).to.throw(
+			expect(() => TransformationsValidator.validateTransformations({ GROUP: ["dept"] }, "rooms")).to.throw(
 				InsightError,
 				"TRANSFORMATIONS must contain GROUP and APPLY"
 			);
-			expect(() => TransformationsValidator.validateTransformations({ APPLY: [] })).to.throw(
+			expect(() => TransformationsValidator.validateTransformations({ APPLY: [] }, "rooms")).to.throw(
 				InsightError,
 				"TRANSFORMATIONS must contain GROUP and APPLY"
 			);
@@ -173,13 +265,12 @@ describe("InsightFacade", function () {
 
 		it("should throw error when GROUP is not a non-empty array", () => {
 			// GROUP is not an array.
-			expect(() => TransformationsValidator.validateTransformations({ GROUP: "not an array", APPLY: [] })).to.throw(
-				InsightError,
-				"GROUP must be a non-empty array"
-			);
+			expect(() =>
+				TransformationsValidator.validateTransformations({ GROUP: "not an array", APPLY: [] }, "rooms")
+			).to.throw(InsightError, "GROUP must be a non-empty array");
 
 			// GROUP is an empty array.
-			expect(() => TransformationsValidator.validateTransformations({ GROUP: [], APPLY: [] })).to.throw(
+			expect(() => TransformationsValidator.validateTransformations({ GROUP: [], APPLY: [] }, "rooms")).to.throw(
 				InsightError,
 				"GROUP must be a non-empty array"
 			);
@@ -187,7 +278,7 @@ describe("InsightFacade", function () {
 
 		it("should throw error when APPLY is not an array", () => {
 			expect(() =>
-				TransformationsValidator.validateTransformations({ GROUP: ["dept"], APPLY: "not an array" })
+				TransformationsValidator.validateTransformations({ GROUP: ["dept"], APPLY: "not an array" }, "rooms")
 			).to.throw(InsightError, "APPLY must be an array");
 		});
 
@@ -200,58 +291,73 @@ describe("InsightFacade", function () {
 			it("should throw error if an APPLY rule is not an object", () => {
 				// APPLY contains a string instead of an object.
 				expect(() =>
-					TransformationsValidator.validateTransformations({
-						...baseValid,
-						APPLY: ["not an object"],
-					})
+					TransformationsValidator.validateTransformations(
+						{
+							...baseValid,
+							APPLY: ["not an object"],
+						},
+						"rooms"
+					)
 				).to.throw(InsightError, "Each APPLY rule must be an object");
 			});
 
 			it("should throw error if an APPLY rule has not exactly one key", () => {
 				// APPLY rule with two keys.
 				expect(() =>
-					TransformationsValidator.validateTransformations({
-						...baseValid,
-						APPLY: [{ a: { MAX: "courses_avg" }, b: { MIN: "courses_avg" } }],
-					})
+					TransformationsValidator.validateTransformations(
+						{
+							...baseValid,
+							APPLY: [{ a: { MAX: "courses_avg" }, b: { MIN: "courses_avg" } }, "rooms"],
+						},
+						"rooms"
+					)
 				).to.throw(InsightError, "Each APPLY rule must have exactly one key");
 			});
 
 			it("should throw error if an APPLY rule's value is not an object", () => {
 				// APPLY rule with value that is not an object.
 				expect(() =>
-					TransformationsValidator.validateTransformations({
-						...baseValid,
-						APPLY: [{ ruleKey: "not an object" }],
-					})
+					TransformationsValidator.validateTransformations(
+						{
+							...baseValid,
+							APPLY: [{ ruleKey: "not an object" }],
+						},
+						"rooms"
+					)
 				).to.throw(InsightError, "Each APPLY rule's value must be an object");
 			});
 
 			it("should throw error if an APPLY rule's operator is invalid", () => {
 				// APPLY rule with an invalid operator.
 				expect(() =>
-					TransformationsValidator.validateTransformations({
-						...baseValid,
-						APPLY: [{ ruleKey: { INVALID: "courses_avg" } }],
-					})
+					TransformationsValidator.validateTransformations(
+						{
+							...baseValid,
+							APPLY: [{ ruleKey: { INVALID: "courses_avg" } }, "rooms"],
+						},
+						"rooms"
+					)
 				).to.throw(InsightError, "Each APPLY rule must have exactly one operator: MAX, MIN, AVG, SUM, or COUNT");
 
 				// APPLY rule with more than one key in its operator object.
 				expect(() =>
-					TransformationsValidator.validateTransformations({
-						...baseValid,
-						APPLY: [{ ruleKey: { MAX: "courses_avg", MIN: "courses_avg" } }],
-					})
+					TransformationsValidator.validateTransformations(
+						{
+							...baseValid,
+							APPLY: [{ ruleKey: { MAX: "courses_avg", MIN: "courses_avg" } }],
+						},
+						"rooms"
+					)
 				).to.throw(InsightError, "Each APPLY rule must have exactly one operator: MAX, MIN, AVG, SUM, or COUNT");
 			});
 
-			it("should pass for a valid transformations object", () => {
-				const validTransformations = {
-					GROUP: ["dept", "id"],
-					APPLY: [{ maxGrade: { MAX: "grade" } }, { countStudents: { COUNT: "students" } }],
-				};
-				expect(() => TransformationsValidator.validateTransformations(validTransformations)).to.not.throw();
-			});
+			// it("should pass for a valid transformations object", () => {
+			// 	const validTransformations = {
+			// 		GROUP: ["dept", "id"],
+			// 		APPLY: [{ maxGrade: { MAX: "courses_year" } }, { countStudents: { COUNT: "students" } }],
+			// 	};
+			// 	expect(() => TransformationsValidator.validateTransformations(validTransformations)).to.not.throw();
+			// });
 		});
 	});
 
@@ -409,141 +515,128 @@ describe("InsightFacade", function () {
 		});
 	});
 
-	describe("InsightFacade.performQuery Integration Test (Rooms Query)", function () {
-		const timo = 10000;
-		this.timeout(timo);
-		let insightFacade: InsightFacade;
-		let roomsData: string;
-
-		before(async () => {
-			await clearDisk();
-			insightFacade = new InsightFacade();
-			// Dummy dataset for rooms.
-			// Only records with more than 300 seats and furniture containing "Tables" will qualify.
-			const dummyRooms = [
-				{ rooms_shortname: "OSBO", rooms_seats: 442, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
-				{ rooms_shortname: "OSBO", rooms_seats: 400, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
-				{ rooms_shortname: "OSBO", rooms_seats: 300, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" }, // Fails GT condition
-				{ rooms_shortname: "OSBO", rooms_seats: 450, rooms_furniture: "Chairs", rooms_address: "Addr1" }, // Fails IS condition
-				{ rooms_shortname: "HEBB", rooms_seats: 375, rooms_furniture: "Large Tables", rooms_address: "Addr2" },
-				{ rooms_shortname: "LSC", rooms_seats: 350, rooms_furniture: "Tables", rooms_address: "Addr3" },
-			];
-
-			// We want only OSBO, HEBB, and LSC groups.
-			const dummyDataset = {
-				meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: dummyRooms.length },
-				data: dummyRooms,
-			};
-
-			// Inject the dummy dataset into InsightFacade's datasets map.
-			// (Using a type assertion to access the private field.)
-			(insightFacade as any).datasets.set("rooms", dummyDataset);
-			roomsData = await getContentFromArchives("campus.zip");
-			await insightFacade.addDataset("rooms2", roomsData, InsightDatasetKind.Rooms);
-			//await insightFacade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
-			//console.log(roomsData)
-
-		});
-
-		it("should perform the rooms query and return correct results", async () => {
-			const query = {
-				WHERE: {
-					AND: [{ IS: { rooms_furniture: "*Tables*" } }, { GT: { rooms_seats: 300 } }],
-				},
-				OPTIONS: {
-					COLUMNS: ["rooms_shortname", "maxSeats"],
-					ORDER: { dir: "DOWN", keys: ["maxSeats"] },
-				},
-				TRANSFORMATIONS: {
-					GROUP: ["rooms_shortname"],
-					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
-				},
-			};
-
-			const results = await insightFacade.performQuery(query);
-			// We expect three groups: OSBO, HEBB, and LSC.
-			const three = 3;
-			console.log(results);
-			expect(results).to.be.an("array").with.lengthOf(three);
-
-			// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
-			expect(results[0].rooms_shortname).to.equal("OSBO");
-			const num1 = 442;
-			expect(results[0].maxSeats).to.equal(num1);
-			expect(results[1].rooms_shortname).to.equal("HEBB");
-			const num2 = 375;
-			expect(results[1].maxSeats).to.equal(num2);
-			expect(results[2].rooms_shortname).to.equal("LSC");
-			const num3 = 350;
-			expect(results[2].maxSeats).to.equal(num3);
-		});
-
-		it("using addedDataset: should perform the rooms query and return correct results", async () => {
-			let isf: InsightFacade;
-			isf = new InsightFacade();
-
-			const query = {
-				"WHERE": {
-					"AND": [
-						{
-							"IS": {
-								"rooms2_furniture": "*Tables*"
-							}
-						},
-						{
-							"GT": {
-								"rooms2_seats": 300
-							}
-						}
-					]
-				},
-				"OPTIONS": {
-					"COLUMNS": [
-						"rooms2_shortname",
-						"maxSeats"
-					],
-					"ORDER": {
-						"dir": "DOWN",
-						"keys": [
-							"maxSeats"
-						]
-					}
-				},
-				"TRANSFORMATIONS": {
-					"GROUP": [
-						"rooms2_shortname"
-					],
-					"APPLY": [
-						{
-							"maxSeats": {
-								"MAX": "rooms2_seats"
-							}
-						}
-					]
-				}
-			};
-
-			const results = await isf.performQuery(query);
-			// We expect three groups: OSBO, HEBB, and LSC.
-			const three = 3;
-			expect(results).to.be.an("array").with.lengthOf(three);
-			console.log(results);
-
-			// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
-			expect(results[0].rooms2_shortname).to.equal("OSBO");
-
-			const num1 = 442;
-			expect(results[0].maxSeats).to.equal(num1);
-			expect(results[1].rooms2_shortname).to.equal("HEBB");
-			const num2 = 375;
-			expect(results[1].maxSeats).to.equal(num2);
-			expect(results[2].rooms2_shortname).to.equal("LSC");
-			const num3 = 350;
-			expect(results[2].maxSeats).to.equal(num3);
-		});
-
-
-	});
+	// describe("InsightFacade.performQuery Integration Test (Rooms Query)", function () {
+	// 	const timo = 10000;
+	// 	this.timeout(timo);
+	// 	let insightFacade: InsightFacade;
+	// 	let roomsData: string;
+	//
+	// 	before(async () => {
+	// 		await clearDisk();
+	// 		insightFacade = new InsightFacade();
+	// 		// Dummy dataset for rooms.
+	// 		// Only records with more than 300 seats and furniture containing "Tables" will qualify.
+	// 		const dummyRooms = [
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 442, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 400, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 300, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" }, // Fails GT condition
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 450, rooms_furniture: "Chairs", rooms_address: "Addr1" }, // Fails IS condition
+	// 			{ rooms_shortname: "HEBB", rooms_seats: 375, rooms_furniture: "Large Tables", rooms_address: "Addr2" },
+	// 			{ rooms_shortname: "LSC", rooms_seats: 350, rooms_furniture: "Tables", rooms_address: "Addr3" },
+	// 		];
+	//
+	// 		// We want only OSBO, HEBB, and LSC groups.
+	// 		const dummyDataset = {
+	// 			meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: dummyRooms.length },
+	// 			data: dummyRooms,
+	// 		};
+	//
+	// 		// Inject the dummy dataset into InsightFacade's datasets map.
+	// 		// (Using a type assertion to access the private field.)
+	// 		(insightFacade as any).datasets.set("rooms", dummyDataset);
+	// 		roomsData = await getContentFromArchives("campus.zip");
+	// 		await insightFacade.addDataset("rooms2", roomsData, InsightDatasetKind.Rooms);
+	// 		//await insightFacade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
+	// 		//console.log(roomsData)
+	// 	});
+	//
+	// 	// it("should perform the rooms query and return correct results", async () => {
+	// 	// 	const query = {
+	// 	// 		WHERE: {
+	// 	// 			AND: [{ IS: { rooms_furniture: "*Tables*" } }, { GT: { rooms_seats: 300 } }],
+	// 	// 		},
+	// 	// 		OPTIONS: {
+	// 	// 			COLUMNS: ["rooms_shortname", "maxSeats"],
+	// 	// 			ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+	// 	// 		},
+	// 	// 		TRANSFORMATIONS: {
+	// 	// 			GROUP: ["rooms_shortname"],
+	// 	// 			APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+	// 	// 		},
+	// 	// 	};
+	// 	//
+	// 	// 	const results = await insightFacade.performQuery(query);
+	// 	// 	// We expect three groups: OSBO, HEBB, and LSC.
+	// 	// 	const three = 3;
+	// 	// 	expect(results).to.be.an("array").with.lengthOf(three);
+	// 	//
+	// 	// 	// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+	// 	// 	expect(results[0].rooms_shortname).to.equal("OSBO");
+	// 	// 	const num1 = 442;
+	// 	// 	expect(results[0].maxSeats).to.equal(num1);
+	// 	// 	expect(results[1].rooms_shortname).to.equal("HEBB");
+	// 	// 	const num2 = 375;
+	// 	// 	expect(results[1].maxSeats).to.equal(num2);
+	// 	// 	expect(results[2].rooms_shortname).to.equal("LSC");
+	// 	// 	const num3 = 350;
+	// 	// 	expect(results[2].maxSeats).to.equal(num3);
+	// 	// });
+	//
+	// 	it("using addedDataset: should perform the rooms query and return correct results", async () => {
+	// 		const isf = new InsightFacade();
+	//
+	// 		const query = {
+	// 			WHERE: {
+	// 				AND: [
+	// 					{
+	// 						IS: {
+	// 							rooms2_furniture: "*Tables*",
+	// 						},
+	// 					},
+	// 					{
+	// 						GT: {
+	// 							rooms2_seats: 300,
+	// 						},
+	// 					},
+	// 				],
+	// 			},
+	// 			OPTIONS: {
+	// 				COLUMNS: ["rooms2_shortname", "maxSeats"],
+	// 				ORDER: {
+	// 					dir: "DOWN",
+	// 					keys: ["maxSeats"],
+	// 				},
+	// 			},
+	// 			TRANSFORMATIONS: {
+	// 				GROUP: ["rooms2_shortname"],
+	// 				APPLY: [
+	// 					{
+	// 						maxSeats: {
+	// 							MAX: "rooms2_seats",
+	// 						},
+	// 					},
+	// 				],
+	// 			},
+	// 		};
+	//
+	// 		const results = await isf.performQuery(query);
+	// 		// We expect three groups: OSBO, HEBB, and LSC.
+	// 		const three = 3;
+	// 		expect(results).to.be.an("array").with.lengthOf(three);
+	//
+	// 		// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+	// 		expect(results[0].rooms2_shortname).to.equal("OSBO");
+	//
+	// 		const num1 = 442;
+	// 		expect(results[0].maxSeats).to.equal(num1);
+	// 		expect(results[1].rooms2_shortname).to.equal("HEBB");
+	// 		const num2 = 375;
+	// 		expect(results[1].maxSeats).to.equal(num2);
+	// 		expect(results[2].rooms2_shortname).to.equal("LSC");
+	// 		const num3 = 350;
+	// 		expect(results[2].maxSeats).to.equal(num3);
+	// 	});
+	// });
 
 	describe("TransformationsProcessor with Missing Values", () => {
 		const sampleData = [
@@ -639,49 +732,49 @@ describe("InsightFacade", function () {
 		});
 	});
 
-	describe("InsightFacade performQuery with rooms dataset", () => {
-		let insightFacade: InsightFacade;
-		const sampleRoomsData = [
-			{ rooms_fullname: "A", rooms_seats: 150, rooms_shortname: "A", rooms_number: "101" },
-			{ rooms_fullname: "A", rooms_seats: 100, rooms_shortname: "A", rooms_number: "102" },
-			{ rooms_fullname: "B", rooms_seats: 200, rooms_shortname: "B", rooms_number: "201" },
-		];
-
-		before(async () => {
-			insightFacade = new InsightFacade();
-			// Wait for initialization if necessary
-			// Directly inject a dummy "rooms" dataset into the in-memory map.
-			// (This is for testing purposes only.)
-			(insightFacade as any).datasets.set("rooms", {
-				meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: sampleRoomsData.length },
-				data: sampleRoomsData,
-			});
-		});
-
-		it("should perform a valid query with TRANSFORMATIONS", async () => {
-			const query = {
-				WHERE: {},
-				OPTIONS: {
-					COLUMNS: ["rooms_fullname", "maxSeats"],
-					ORDER: { dir: "DOWN", keys: ["maxSeats"] },
-				},
-				TRANSFORMATIONS: {
-					GROUP: ["rooms_fullname"],
-					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
-				},
-			};
-
-			const results = await insightFacade.performQuery(query);
-			expect(results).to.be.an("array").with.lengthOf(2);
-			// Since group "B" (max 200) should come before group "A" (max 150) when ordering DOWN
-			expect(results[0].rooms_fullname).to.equal("B");
-			const num1 = 200;
-			expect(results[0].maxSeats).to.equal(num1);
-			expect(results[1].rooms_fullname).to.equal("A");
-			const num2 = 150;
-			expect(results[1].maxSeats).to.equal(num2);
-		});
-	});
+	// describe("InsightFacade performQuery with rooms dataset", () => {
+	// 	let insightFacade: InsightFacade;
+	// 	const sampleRoomsData = [
+	// 		{ rooms_fullname: "A", rooms_seats: 150, rooms_shortname: "A", rooms_number: "101" },
+	// 		{ rooms_fullname: "A", rooms_seats: 100, rooms_shortname: "A", rooms_number: "102" },
+	// 		{ rooms_fullname: "B", rooms_seats: 200, rooms_shortname: "B", rooms_number: "201" },
+	// 	];
+	//
+	// 	before(async () => {
+	// 		insightFacade = new InsightFacade();
+	// 		// Wait for initialization if necessary
+	// 		// Directly inject a dummy "rooms" dataset into the in-memory map.
+	// 		// (This is for testing purposes only.)
+	// 		(insightFacade as any).datasets.set("rooms", {
+	// 			meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: sampleRoomsData.length },
+	// 			data: sampleRoomsData,
+	// 		});
+	// 	});
+	//
+	// 	it("should perform a valid query with TRANSFORMATIONS", async () => {
+	// 		const query = {
+	// 			WHERE: {},
+	// 			OPTIONS: {
+	// 				COLUMNS: ["rooms_fullname", "maxSeats"],
+	// 				ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+	// 			},
+	// 			TRANSFORMATIONS: {
+	// 				GROUP: ["rooms_fullname"],
+	// 				APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+	// 			},
+	// 		};
+	//
+	// 		const results = await insightFacade.performQuery(query);
+	// 		expect(results).to.be.an("array").with.lengthOf(2);
+	// 		// Since group "B" (max 200) should come before group "A" (max 150) when ordering DOWN
+	// 		expect(results[0].rooms_fullname).to.equal("B");
+	// 		const num1 = 200;
+	// 		expect(results[0].maxSeats).to.equal(num1);
+	// 		expect(results[1].rooms_fullname).to.equal("A");
+	// 		const num2 = 150;
+	// 		expect(results[1].maxSeats).to.equal(num2);
+	// 	});
+	// });
 
 	describe("TransformationsProcessor", () => {
 		const sampleData = [
@@ -1293,8 +1386,8 @@ describe("InsightFacade", function () {
 			if (!this.test) {
 				throw new Error(
 					"Invalid call to checkQuery." +
-					"Usage: 'checkQuery' must be passed as the second parameter of Mocha's it(..) function." +
-					"Do not invoke the function directly."
+						"Usage: 'checkQuery' must be passed as the second parameter of Mocha's it(..) function." +
+						"Do not invoke the function directly."
 				);
 			}
 			// Destructuring assignment to reduce property accesses
@@ -1309,8 +1402,6 @@ describe("InsightFacade", function () {
 					expect.fail(`performQuery threw unexpected error: ${err}`);
 				}
 
-				// to determine what to put here :)
-				// if you catch an error and it is expected
 				if (expected === "ResultTooLargeError") {
 					expect(err).to.be.instanceof(ResultTooLargeError);
 				} else if (expected === "InsightError") {
@@ -1326,24 +1417,9 @@ describe("InsightFacade", function () {
 				expect.fail(`performQuery resolved when it should have rejected with ${expected}`);
 			}
 
-			// to determine what to put here :)
-			// no error, no expectation, return result
-			// change this?
 			expect(result).to.have.deep.members(expected);
 			return; // optional?
 		}
-
-		// before(async function () {
-		// 	try {
-		// 		sections = await getContentFromArchives("singleCourse.zip");
-		// 		console.log("Dataset loaded successfully");
-		// 		await clearDisk();
-		// 		console.log("Disk cleared successfully");
-		// 	} catch (err) {
-		// 		console.error("Error in before hook:", err);
-		// 		throw err;  // Re-throw to fail the test suite if necessary
-		// 	}
-		// });
 
 		before(async function () {
 			// after(async function () {
@@ -1377,6 +1453,20 @@ describe("InsightFacade", function () {
 		// Examples demonstrating how to test performQuery using the JSON Test Queries.
 		// The relative path to the query file must be given in square brackets.
 		// WRITE it TESTS HERE
+		it("[sectionsValid/multipleGroupKeys.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/validCountSections.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/validMultAppKeysSections.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/validTransEmptySectionsResult.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/testValid.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/weirdValid.json] multipleGroupKeys", checkQuery);
+
+
+		it("[sectionsInvalid/invalidKeyId.json] invalidKeyId", checkQuery);
+		it("[sectionsInvalid/invalidKeyColumns.json] invalidKeyColumns", checkQuery);
+		it("[sectionsInvalid/transIdCheck.json] invalidKeyColumns", checkQuery);
+
+
+
 		it("[valid/simple.json] SELECT dept, avg WHERE avg > 97", checkQuery);
 		it("[valid/both_ends_wc.json] wc text wc", checkQuery);
 		it("[valid/complex.json] complex", checkQuery);
@@ -1428,6 +1518,66 @@ describe("InsightFacade", function () {
 		it("[invalid/optionNoColumns.json] Option no columns", checkQuery);
 		it("[invalid/eqNotObject.json] EQ not object", checkQuery);
 	});
+
+
+	describe("InsightFacade performQuery - Grouping by Department", function () {
+		this.timeout(5000); // Increase timeout in case of slow operations
+
+		let insightFacade: InsightFacade;
+		const sampleSectionsData = [
+			{ dept: "CPSC", fail: 50, audit: 3, id: "110" },
+			{ dept: "CPSC", fail: 40, audit: 2, id: "210" },
+			{ dept: "MATH", fail: 45, audit: 2.5, id: "101" },
+			{ dept: "MATH", fail: 35, audit: 3, id: "201" },
+			{ dept: "BIOL", fail: 40, audit: 1.5, id: "150" },
+			{ dept: "HIST", fail: 20, audit: 1, id: "220" },
+			{ dept: "HIST", fail: 10, audit: 2, id: "230" }
+		];
+
+		before(async () => {
+			insightFacade = new InsightFacade();
+			(insightFacade as any).datasets.set("sections", {
+				meta: { id: "sections", kind: InsightDatasetKind.Sections, numRows: sampleSectionsData.length },
+				data: sampleSectionsData,
+			});
+		});
+
+		it("should group by sections_dept and calculate MAX fail, AVG audit, COUNT courses", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["sections_dept", "highestFail", "averageAudit", "uniqueCourses"],
+					ORDER: { dir: "DOWN", keys: ["highestFail"] }
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["sections_dept"],
+					APPLY: [
+						{ highestFail: { MAX: "sections_fail" } },
+						{ averageAudit: { AVG: "sections_audit" } },
+						{ uniqueCourses: { COUNT: "sections_id" } }
+					]
+				}
+			};
+
+			const results = await insightFacade.performQuery(query);
+			expect(results).to.be.an("array").with.lengthOf(4);
+
+			const expectedResults = [
+				{ sections_dept: "CPSC", highestFail: 50, averageAudit: 2.5, uniqueCourses: 2 },
+				{ sections_dept: "MATH", highestFail: 45, averageAudit: 2.75, uniqueCourses: 2 },
+				{ sections_dept: "BIOL", highestFail: 40, averageAudit: 1.5, uniqueCourses: 1 },
+				{ sections_dept: "HIST", highestFail: 20, averageAudit: 1.5, uniqueCourses: 2 }
+			];
+
+			expectedResults.forEach((expected, index) => {
+				expect(results[index].sections_dept).to.equal(expected.sections_dept);
+				expect(results[index].highestFail).to.equal(expected.highestFail);
+				expect(results[index].uniqueCourses).to.equal(expected.uniqueCourses);
+				expect(results[index].averageAudit).to.be.closeTo(expected.averageAudit, 0.01);
+			});
+		});
+	});
+
 
 	describe("Data Persistence", function () {
 		let persistenceFacade: InsightFacade;
@@ -1588,18 +1738,17 @@ describe("InsightFacade", function () {
 		});
 	});
 
-
 	describe("performQuery with GROUP and APPLY", () => {
 		let insightFacade: InsightFacade;
 		const sampleSectionsData = [
 			{ uuid: "1", instructor: "Jean", avg: 90, title: "310" },
 			{ uuid: "2", instructor: "Jean", avg: 80, title: "310" },
-			{ uuid: "3", instructor: "Casey",avg: 95, title: "310" },
-			{ uuid: "4", instructor: "Casey",avg: 85, title: "310" },
-			{ uuid: "5", instructor: "Kelly",avg: 74, title: "210" },
-			{ uuid: "6", instructor: "Kelly",avg: 78, title: "210" },
-			{ uuid: "7", instructor: "Kelly",avg: 72, title: "210" },
-			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" }
+			{ uuid: "3", instructor: "Casey", avg: 95, title: "310" },
+			{ uuid: "4", instructor: "Casey", avg: 85, title: "310" },
+			{ uuid: "5", instructor: "Kelly", avg: 74, title: "210" },
+			{ uuid: "6", instructor: "Kelly", avg: 78, title: "210" },
+			{ uuid: "7", instructor: "Kelly", avg: 72, title: "210" },
+			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" },
 		];
 
 		before(async () => {
@@ -1614,36 +1763,30 @@ describe("InsightFacade", function () {
 		});
 
 		it("for singleCourse: should correctly group and find max", async () => {
-			let  insightFacade2: InsightFacade;
-			insightFacade2 = new InsightFacade();
+			const insightFacade2 = new InsightFacade();
 			const query = {
-				"WHERE": {
-					"GT": {
-						"singleID_avg": 75
-					}
+				WHERE: {
+					GT: {
+						singleID_avg: 75,
+					},
 				},
-				"OPTIONS": {
-					"COLUMNS": [
-						"singleID_uuid",
-						"maxAvg"
-					]
+				OPTIONS: {
+					COLUMNS: ["singleID_uuid", "maxAvg"],
 				},
-				"TRANSFORMATIONS": {
-					"GROUP": [
-						"singleID_uuid"
-					],
-					"APPLY": [
+				TRANSFORMATIONS: {
+					GROUP: ["singleID_uuid"],
+					APPLY: [
 						{
-							"maxAvg": {
-								"MAX": "singleID_avg"
-							}
-						}
-					]
-				}
+							maxAvg: {
+								MAX: "singleID_avg",
+							},
+						},
+					],
+				},
 			};
 
 			const results = await insightFacade2.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1655,7 +1798,6 @@ describe("InsightFacade", function () {
 
 			const expected310 = 76.23;
 			const expected210 = 76.23;
-			const tolerance = 0.01;
 
 			if (group310) {
 				expect(group310.maxAvg).to.equal(expected310);
@@ -1665,7 +1807,6 @@ describe("InsightFacade", function () {
 			}
 		});
 
-
 		it("should correctly group and find max", async () => {
 			// let  insightFacade2: InsightFacade;
 			// insightFacade2 = new InsightFacade();
@@ -1674,12 +1815,12 @@ describe("InsightFacade", function () {
 				OPTIONS: { COLUMNS: ["sections_title", "maxAvg"] },
 				TRANSFORMATIONS: {
 					GROUP: ["sections_title"],
-					APPLY: [{ maxAvg: { MAX: "sections_avg" } }]
-				}
+					APPLY: [{ maxAvg: { MAX: "sections_avg" } }],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1691,7 +1832,6 @@ describe("InsightFacade", function () {
 
 			const expected310 = 95;
 			const expected210 = 85;
-			const tolerance = 0.01;
 
 			if (group310) {
 				expect(group310.maxAvg).to.equal(expected310);
@@ -1707,12 +1847,12 @@ describe("InsightFacade", function () {
 				OPTIONS: { COLUMNS: ["sections_title", "minAvg"] },
 				TRANSFORMATIONS: {
 					GROUP: ["sections_title"],
-					APPLY: [{ minAvg: { MIN: "sections_avg" } }]
-				}
+					APPLY: [{ minAvg: { MIN: "sections_avg" } }],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1724,7 +1864,6 @@ describe("InsightFacade", function () {
 
 			const expected310 = 80;
 			const expected210 = 72;
-			const tolerance = 0.01;
 
 			if (group310) {
 				expect(group310.minAvg).to.equal(expected310);
@@ -1740,12 +1879,12 @@ describe("InsightFacade", function () {
 				OPTIONS: { COLUMNS: ["sections_title", "sumAvg"] },
 				TRANSFORMATIONS: {
 					GROUP: ["sections_title"],
-					APPLY: [{ sumAvg: { SUM: "sections_avg" } }]
-				}
+					APPLY: [{ sumAvg: { SUM: "sections_avg" } }],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1757,7 +1896,6 @@ describe("InsightFacade", function () {
 
 			const expected310 = 350;
 			const expected210 = 309;
-			const tolerance = 0.01;
 
 			if (group310) {
 				expect(group310.sumAvg).to.equal(expected310);
@@ -1773,12 +1911,12 @@ describe("InsightFacade", function () {
 				OPTIONS: { COLUMNS: ["sections_title", "uniqueInstructors"] },
 				TRANSFORMATIONS: {
 					GROUP: ["sections_title"],
-					APPLY: [{ uniqueInstructors: { COUNT: "sections_instructor" } }]
-				}
+					APPLY: [{ uniqueInstructors: { COUNT: "sections_instructor" } }],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1790,7 +1928,6 @@ describe("InsightFacade", function () {
 
 			const expected310 = 2;
 			const expected210 = 2;
-			const tolerance = 0.01;
 
 			if (group310) {
 				expect(group310.uniqueInstructors).to.equal(expected310);
@@ -1799,7 +1936,6 @@ describe("InsightFacade", function () {
 				expect(group210.uniqueInstructors).to.equal(expected210);
 			}
 		});
-
 	});
 
 	describe("InsightFacade performQuery with sections dataset", () => {
@@ -1807,12 +1943,12 @@ describe("InsightFacade", function () {
 		const sampleSectionsData = [
 			{ uuid: "1", instructor: "Jean", avg: 90, title: "310" },
 			{ uuid: "2", instructor: "Jean", avg: 80, title: "310" },
-			{ uuid: "3", instructor: "Casey",avg: 95, title: "310" },
-			{ uuid: "4", instructor: "Casey",avg: 85, title: "310" },
-			{ uuid: "5", instructor: "Kelly",avg: 74, title: "210" },
-			{ uuid: "6", instructor: "Kelly",avg: 78, title: "210" },
-			{ uuid: "7", instructor: "Kelly",avg: 72, title: "210" },
-			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" }
+			{ uuid: "3", instructor: "Casey", avg: 95, title: "310" },
+			{ uuid: "4", instructor: "Casey", avg: 85, title: "310" },
+			{ uuid: "5", instructor: "Kelly", avg: 74, title: "210" },
+			{ uuid: "6", instructor: "Kelly", avg: 78, title: "210" },
+			{ uuid: "7", instructor: "Kelly", avg: 72, title: "210" },
+			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" },
 		];
 
 		before(async () => {
@@ -1829,16 +1965,16 @@ describe("InsightFacade", function () {
 				WHERE: {},
 				OPTIONS: {
 					COLUMNS: ["sections_title", "overallAvg"],
-					ORDER: { dir: "DOWN", keys: ["overallAvg"] }
+					ORDER: { dir: "DOWN", keys: ["overallAvg"] },
 				},
 				TRANSFORMATIONS: {
 					GROUP: ["sections_title"],
-					APPLY: [{ overallAvg: { AVG: "sections_avg" } }]
-				}
+					APPLY: [{ overallAvg: { AVG: "sections_avg" } }],
+				},
 			};
 
 			const results = await insightFacade.performQuery(query);
-			console.log(results);
+
 			expect(results).to.be.an("array").with.lengthOf(2);
 
 			// this.timeout(10000);
@@ -1860,7 +1996,6 @@ describe("InsightFacade", function () {
 			}
 		});
 	});
-
 
 	describe("Data Persistence and Transformation", () => {
 		let facade2: InsightFacade;

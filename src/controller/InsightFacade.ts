@@ -192,7 +192,7 @@ export default class InsightFacade implements IInsightFacade {
 					throw new InsightError("Query must be a non-null object");
 				}
 				const { dataset, records } = this.getRecordsFromQuery(query);
-				console.log(records);
+				//console.log(records);
 				resolve(QueryEngine.runQuery(query, dataset, records));
 			} catch (err) {
 				reject(err);
@@ -226,7 +226,7 @@ export default class InsightFacade implements IInsightFacade {
 	}
 
 	private transformRoomsDataset(datasetId: string, data: Room[]): Record<string, any>[] {
-		return data.map(record => ({
+		return data.map((record) => ({
 			[`${datasetId}_fullname`]: record.fullname ?? "",
 			[`${datasetId}_shortname`]: record.shortname ?? "",
 			[`${datasetId}_number`]: record.number ?? "",
@@ -240,7 +240,6 @@ export default class InsightFacade implements IInsightFacade {
 			[`${datasetId}_href`]: record.href ?? "",
 		}));
 	}
-
 
 	private transformDataset(datasetId: string, data: Section[]): Record<string, any>[] {
 		return data.map((record) => ({

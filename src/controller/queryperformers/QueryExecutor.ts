@@ -9,9 +9,9 @@ export class QueryExecutor {
 
 	public static executeQuery(query: any, dataset: any[]): any[] {
 		const filtered = dataset.filter((record) => FilterEvaluator.evaluateFilter(query.WHERE, record));
-		if (filtered.length > this.MAX_SIZE) {
-			throw new ResultTooLargeError("Query result exceeds limit of 5000 records");
-		}
+
+
+
 
 		let processedData = filtered;
 		if ("TRANSFORMATIONS" in query) {
@@ -21,6 +21,10 @@ export class QueryExecutor {
 
 		if (query.OPTIONS.ORDER) {
 			processedData = OrderEvaluator.order(processedData, query.OPTIONS.ORDER);
+		}
+
+		if (processedData.length > this.MAX_SIZE) {
+			throw new ResultTooLargeError("Query result exceeds limit of 5000 records");
 		}
 
 		const projected = ProjectionEvaluator.project(processedData, query.OPTIONS.COLUMNS);

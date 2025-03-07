@@ -4,11 +4,13 @@ import Decimal from "decimal.js";
 export function groupData(data: any[], groupKeys: string[]): Map<string, any[]> {
 	const groups = new Map<string, any[]>();
 	data.forEach((record) => {
+		// should we have undefined as fallback?
 		const groupIdentifier = groupKeys.map(key => record[key] ?? "undefined").join("|");
 		if (!groups.has(groupIdentifier)) {
 			groups.set(groupIdentifier, []);
 		}
 		groups.get(groupIdentifier)?.push(record);
+		console.log(record)
 	});
 	return groups;
 }
