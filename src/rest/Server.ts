@@ -3,17 +3,20 @@ import { StatusCodes } from "http-status-codes";
 import { Log } from "@ubccpsc310/project-support";
 import * as http from "http";
 import cors from "cors";
+import InsightFacade from "../controller/InsightFacade";
+import { InsightDatasetKind, NotFoundError } from "../controller/IInsightFacade";
 
 export default class Server {
 	private readonly port: number;
 	private express: Application;
 	private server: http.Server | undefined;
+	private insightFacade: InsightFacade;
 
 	constructor(port: number) {
 		Log.info(`Server::<init>( ${port} )`);
 		this.port = port;
 		this.express = express();
-
+		this.insightFacade = new InsightFacade();
 		this.registerMiddleware();
 		this.registerRoutes();
 
@@ -89,6 +92,70 @@ export default class Server {
 		this.express.get("/echo/:msg", Server.echo);
 
 		// TODO: your other endpoints should go here
+		// PUT endpoint to add dataset.
+		this.express.put("/dataset/:id/:kind", this.handlePutDataset.bind(this));
+		// DELETE endpoint to remove dataset.
+		this.express.delete("/dataset/:id", this.handleDeleteDataset.bind(this));
+		// POST endpoint to perform query.
+		this.express.post("/query", this.handlePostQuery.bind(this));
+		// GET endpoint to list datasets.
+		this.express.get("/datasets", this.handleGetDatasets.bind(this));
+	}
+
+	private sendResponse(res: Response, status: number, body: any): void {
+		res.status(status).json(body);
+	}
+
+	// PUT /dataset/:id/:kind
+	private async handlePutDataset(req: Request, res: Response): Promise<void> {
+		const { id, kind } = req.params;
+		const data: string = req.body.toString("base64");
+		try {
+			const result = await this.insightFacade.addDataset(id, data, kind as InsightDatasetKind);
+			this.sendResponse(res, StatusCodes.OK, { result });
+		} catch (err) {
+			const errorMsg = err instanceof Error ? err.message : String(err);
+			this.sendResponse(res, StatusCodes.BAD_REQUEST, { error: errorMsg });
+		}
+	}
+
+	// DELETE /dataset/:id
+	private async handleDeleteDataset(req: Request, res: Response): Promise<void> {
+		const { id } = req.params;
+		try {
+			const result = await this.insightFacade.removeDataset(id);
+			this.sendResponse(res, StatusCodes.OK, { result });
+		} catch (err) {
+			if (err instanceof NotFoundError) {
+				this.sendResponse(res, StatusCodes.NOT_FOUND, { error: err.toString() });
+			} else {
+				const errorMsg = err instanceof Error ? err.message : String(err);
+				this.sendResponse(res, StatusCodes.BAD_REQUEST, { error: errorMsg });
+			}
+		}
+	}
+
+	// POST /query
+	private async handlePostQuery(req: Request, res: Response): Promise<void> {
+		const query = req.body;
+		try {
+			const result = await this.insightFacade.performQuery(query);
+			this.sendResponse(res, StatusCodes.OK, { result });
+		} catch (err) {
+			const errorMsg = err instanceof Error ? err.message : String(err);
+			this.sendResponse(res, StatusCodes.BAD_REQUEST, { error: errorMsg });
+		}
+	}
+
+	// GET /datasets
+	private async handleGetDatasets(req: Request, res: Response): Promise<void> {
+		try {
+			const result = await this.insightFacade.listDatasets();
+			this.sendResponse(res, StatusCodes.OK, { result });
+		} catch (err) {
+			const errorMsg = err instanceof Error ? err.message : String(err);
+			this.sendResponse(res, StatusCodes.BAD_REQUEST, { error: errorMsg });
+		}
 	}
 
 	// The next two methods handle the echo service.
