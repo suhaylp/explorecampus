@@ -6,7 +6,7 @@ import {
 	NotFoundError,
 	ResultTooLargeError,
 } from "../../src/controller/IInsightFacade";
-import InsightFacade from "../../src/controller/InsightFacade";
+// import InsightFacade from "../../src/controller/InsightFacade";
 import { clearDisk, getContentFromArchives, loadTestQuery } from "../TestUtil";
 
 import { expect, use } from "chai";
@@ -14,6 +14,22 @@ import chaiAsPromised from "chai-as-promised";
 import fs from "fs-extra";
 import path from "path";
 import JSZip from "jszip";
+
+import { parseBuildingHtml } from "../../src/controller/dataset/BuildingParserUtils";
+import { QueryValidator } from "../../src/controller/queryperformers/QueryValidator";
+import { performTransformations } from "../../src/controller/queryperformers/executionhelpers/TransformationsProcessor";
+import { OrderEvaluator } from "../../src/controller/queryperformers/executionhelpers/OrderEvaluator";
+
+import { fetchGeolocation } from "../../src/controller/dataset/GeoHelper";
+
+import {
+	validateSField,
+	validateMField,
+} from "../../src/controller/queryperformers/validationhelpers/QueryKeyValidator";
+import InsightFacade from "../../src/controller/InsightFacade";
+import { parseIndexHtml } from "../../src/controller/dataset/IndexParserUtils";
+import { BuildingData } from "../../src/controller/dataset/IndexParserUtils";
+import { TransformationsValidator } from "../../src/controller/queryperformers/validationhelpers/QueryTransformationsValidator";
 
 use(chaiAsPromised);
 
@@ -38,6 +54,975 @@ describe("InsightFacade", function () {
 		// Just in case there is anything hanging around from a previous run of the test suite
 		await clearDisk();
 	});
+
+	// UNCOMMENT THIS
+	// COME BACK
+	describe("New PerformQuery", function () {
+		/**
+		 * Loads the TestQuery specified in the test name and asserts the behaviour of performQuery.
+		 *
+		 * Note: the 'this' parameter is automatically set by Mocha and contains information about the test.
+		 */
+		async function checkQuery(this: Mocha.Context): Promise<void> {
+			if (!this.test) {
+				throw new Error(
+					"Invalid call to checkQuery." +
+						"Usage: 'checkQuery' must be passed as the second parameter of Mocha's it(..) function." +
+						"Do not invoke the function directly."
+				);
+			}
+			// Destructuring assignment to reduce property accesses
+			const { input, expected, errorExpected } = await loadTestQuery(this.test.title);
+			// COMMENTED OUT
+			let result: InsightResult[] = []; // dummy value before being reassigned
+			try {
+				result = await facade.performQuery(input);
+			} catch (err) {
+				if (!errorExpected) {
+					// errorExpected is false, expected is a result of tuples
+					expect.fail(`performQuery threw unexpected error: ${err}`);
+				}
+
+				if (expected === "ResultTooLargeError") {
+					expect(err).to.be.instanceof(ResultTooLargeError);
+				} else if (expected === "InsightError") {
+					expect(err).to.be.instanceof(InsightError);
+				}
+				// expect(err).to.be.instanceOf(expected);
+				return; // optional?
+			}
+
+			// expected an error but did not catch
+			if (errorExpected) {
+				// errorExpected is true, expect is error
+				expect.fail(`performQuery resolved when it should have rejected with ${expected}`);
+			}
+
+			expect(result).to.have.deep.members(expected);
+			return; // optional?
+		}
+
+		before(async function () {
+			await clearDisk();
+			facade = new InsightFacade();
+
+			// const timo = 10000;
+			// this.timeout(timo);
+			try {
+				// await clearDisk();
+				const roomsData = await getContentFromArchives("campus.zip");
+				await facade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
+			} catch (err) {
+				throw err;
+			}
+		});
+
+		after(async function () {
+			await clearDisk();
+		});
+
+		// beforeEach(async function (){
+		// 	facade = new InsightFacade();
+		// });
+
+		it("[newValid/minQuery.json] Min Operation Query", checkQuery);
+		it("[newValid/avgQuery.json] Avg Operation Query", checkQuery);
+		it("[newValid/sumQuery.json] Sum Operation Query", checkQuery);
+		it("[newValid/countQuery.json] Count Operation Query", checkQuery);
+		it("[newValid/filteredCountQuery.json] Filtered Count Operation Query", checkQuery);
+		it("[newValid/complex1.json] Complex", checkQuery);
+		it("[newValid/allColsRows.json] allColsRows", checkQuery);
+		it("[newValid/multOrderKeys.json] multOrderKeys", checkQuery);
+		it("[newValid/twoApplyRules.json] twoApplyRules", checkQuery);
+		it("[newValid/validGroupnApply.json] validGroupnApply", checkQuery);
+		it("[newValid/validOrderUp.json] validOrderUp", checkQuery);
+
+		it("[newInvalid/badApplyKey.json] badApplyKey", checkQuery);
+		it("[newInvalid/badTransOp.json] badTransOp", checkQuery);
+		it("[newInvalid/duplicateApplyKey.json] duplicateApplyKey", checkQuery);
+		it("[newInvalid/emptyGroup.json] emptyGroup", checkQuery);
+		it("[newInvalid/noApply.json] noApply", checkQuery);
+		it("[newInvalid/noGroup.json] noGroup", checkQuery);
+		it("[newInvalid/noOrderDir.json] noOrderDir", checkQuery);
+		it("[newInvalid/noOrderkeys.json] noOrderkeys", checkQuery);
+		it("[newInvalid/orderKeysBadArray.json] orderKeysBadArray", checkQuery);
+		it("[newInvalid/orderKeysEmptyArray.json] orderKeysEmptyArray", checkQuery);
+		it("[newInvalid/invalidOrderDirection.json] invalidOrderDirection", checkQuery);
+		it("[newInvalid/invalidKeyType.json] invalid Key Type", checkQuery);
+	});
+
+	// BELOW THIS LINE ARE OLD ACQUIRING TESTS
+
+	describe("OrderEvaluator.order", () => {
+		const records = [
+			{ a: 3, b: "c" },
+			{ a: 1, b: "a" },
+			{ a: 2, b: "b" },
+		];
+
+		describe("when order is a string", () => {
+			it("should sort records in ascending order based on the provided key", () => {
+				const sorted = OrderEvaluator.order([...records], "a");
+				expect(sorted[0].a).to.equal(1);
+				expect(sorted[1].a).to.equal(2);
+				const three = 3;
+				expect(sorted[2].a).to.equal(three);
+			});
+
+			it("should throw an error when the ORDER string is empty", () => {
+				expect(() => OrderEvaluator.order([...records], "   ")).to.throw(InsightError, "ORDER string is empty");
+			});
+		});
+
+		describe("when order is an object", () => {
+			it("should throw an error if ORDER.dir is not 'UP' or 'DOWN'", () => {
+				expect(() => OrderEvaluator.order([...records], { dir: "SIDE", keys: ["a"] })).to.throw(
+					InsightError,
+					"ORDER.dir must be either 'UP' or 'DOWN'"
+				);
+			});
+
+			it("should throw an error if ORDER.keys is not a non-empty array", () => {
+				expect(() => OrderEvaluator.order([...records], { dir: "UP", keys: [] })).to.throw(
+					InsightError,
+					"ORDER.keys must be a non-empty array"
+				);
+			});
+
+			it("should sort records based on multiple keys in 'UP' direction", () => {
+				// Construct records where first key is equal and second key differs.
+				const multiRecords = [
+					{ a: 1, b: "z" },
+					{ a: 1, b: "a" },
+					{ a: 2, b: "b" },
+				];
+				const orderObj = { dir: "UP", keys: ["a", "b"] };
+				const sorted = OrderEvaluator.order([...multiRecords], orderObj);
+				// With a ascending sort, record with a:1 and b:"a" should come before a:1 and b:"z"
+				expect(sorted[0]).to.deep.equal({ a: 1, b: "a" });
+				expect(sorted[1]).to.deep.equal({ a: 1, b: "z" });
+				expect(sorted[2]).to.deep.equal({ a: 2, b: "b" });
+			});
+
+			it("should sort records based on multiple keys in 'DOWN' direction", () => {
+				// Construct records where first key is equal and second key differs.
+				const multiRecords = [
+					{ a: 1, b: "a" },
+					{ a: 1, b: "z" },
+					{ a: 2, b: "b" },
+				];
+				const orderObj = { dir: "DOWN", keys: ["a", "b"] };
+				const sorted = OrderEvaluator.order([...multiRecords], orderObj);
+				// With a descending sort, record with a:2 should be first, and then records with a:1 are sorted in reverse alphabetical order.
+				expect(sorted[0]).to.deep.equal({ a: 2, b: "b" });
+				expect(sorted[1]).to.deep.equal({ a: 1, b: "z" });
+				expect(sorted[2]).to.deep.equal({ a: 1, b: "a" });
+			});
+		});
+
+		describe("when order is of invalid type", () => {
+			it("should throw an error if order is not a string or an object", () => {
+				const num = 123;
+				expect(() => OrderEvaluator.order([...records], num as any)).to.throw(
+					InsightError,
+					"ORDER must be a string or a valid object"
+				);
+			});
+		});
+	});
+
+	describe("TransformationsValidator.validateTransformations", () => {
+		it("should throw error when transformations is not an object", () => {
+			expect(() => TransformationsValidator.validateTransformations("not an object", "rooms")).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must be an object"
+			);
+			expect(() => TransformationsValidator.validateTransformations(null, "rooms")).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must be an object"
+			);
+			const three = 3;
+			expect(() => TransformationsValidator.validateTransformations([1, 2, three], "rooms")).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must be an object"
+			);
+		});
+
+		it("should throw error when GROUP or APPLY keys are missing", () => {
+			expect(() => TransformationsValidator.validateTransformations({}, "rooms")).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must contain GROUP and APPLY"
+			);
+			expect(() => TransformationsValidator.validateTransformations({ GROUP: ["dept"] }, "rooms")).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must contain GROUP and APPLY"
+			);
+			expect(() => TransformationsValidator.validateTransformations({ APPLY: [] }, "rooms")).to.throw(
+				InsightError,
+				"TRANSFORMATIONS must contain GROUP and APPLY"
+			);
+		});
+
+		it("should throw error when GROUP is not a non-empty array", () => {
+			// GROUP is not an array.
+			expect(() =>
+				TransformationsValidator.validateTransformations({ GROUP: "not an array", APPLY: [] }, "rooms")
+			).to.throw(InsightError, "GROUP must be a non-empty array");
+
+			// GROUP is an empty array.
+			expect(() => TransformationsValidator.validateTransformations({ GROUP: [], APPLY: [] }, "rooms")).to.throw(
+				InsightError,
+				"GROUP must be a non-empty array"
+			);
+		});
+
+		it("should throw error when APPLY is not an array", () => {
+			expect(() =>
+				TransformationsValidator.validateTransformations({ GROUP: ["dept"], APPLY: "not an array" }, "rooms")
+			).to.throw(InsightError, "APPLY must be an array");
+		});
+
+		describe("APPLY rule validations", () => {
+			const baseValid = {
+				GROUP: ["dept"],
+				APPLY: [],
+			};
+
+			it("should throw error if an APPLY rule is not an object", () => {
+				// APPLY contains a string instead of an object.
+				expect(() =>
+					TransformationsValidator.validateTransformations(
+						{
+							...baseValid,
+							APPLY: ["not an object"],
+						},
+						"rooms"
+					)
+				).to.throw(InsightError, "Each APPLY rule must be an object");
+			});
+
+			it("should throw error if an APPLY rule has not exactly one key", () => {
+				// APPLY rule with two keys.
+				expect(() =>
+					TransformationsValidator.validateTransformations(
+						{
+							...baseValid,
+							APPLY: [{ a: { MAX: "courses_avg" }, b: { MIN: "courses_avg" } }, "rooms"],
+						},
+						"rooms"
+					)
+				).to.throw(InsightError, "Each APPLY rule must have exactly one key");
+			});
+
+			it("should throw error if an APPLY rule's value is not an object", () => {
+				// APPLY rule with value that is not an object.
+				expect(() =>
+					TransformationsValidator.validateTransformations(
+						{
+							...baseValid,
+							APPLY: [{ ruleKey: "not an object" }],
+						},
+						"rooms"
+					)
+				).to.throw(InsightError, "Each APPLY rule's value must be an object");
+			});
+
+			it("should throw error if an APPLY rule's operator is invalid", () => {
+				// APPLY rule with an invalid operator.
+				expect(() =>
+					TransformationsValidator.validateTransformations(
+						{
+							...baseValid,
+							APPLY: [{ ruleKey: { INVALID: "courses_avg" } }, "rooms"],
+						},
+						"rooms"
+					)
+				).to.throw(InsightError, "Each APPLY rule must have exactly one operator: MAX, MIN, AVG, SUM, or COUNT");
+
+				// APPLY rule with more than one key in its operator object.
+				expect(() =>
+					TransformationsValidator.validateTransformations(
+						{
+							...baseValid,
+							APPLY: [{ ruleKey: { MAX: "courses_avg", MIN: "courses_avg" } }],
+						},
+						"rooms"
+					)
+				).to.throw(InsightError, "Each APPLY rule must have exactly one operator: MAX, MIN, AVG, SUM, or COUNT");
+			});
+
+			// it("should pass for a valid transformations object", () => {
+			// 	const validTransformations = {
+			// 		GROUP: ["dept", "id"],
+			// 		APPLY: [{ maxGrade: { MAX: "courses_year" } }, { countStudents: { COUNT: "students" } }],
+			// 	};
+			// 	expect(() => TransformationsValidator.validateTransformations(validTransformations)).to.not.throw();
+			// });
+		});
+	});
+
+	describe("TransformationsValidator.validateColumns", () => {
+		it("should throw error if a column is not in GROUP or APPLY keys", () => {
+			const transformations = {
+				GROUP: ["dept", "id"],
+				APPLY: [{ maxGrade: { MAX: "grade" } }],
+			};
+			// "avg" is neither in GROUP nor defined in APPLY.
+			expect(() => TransformationsValidator.validateColumns(["dept", "avg"], transformations)).to.throw(
+				InsightError,
+				'Column "avg" must appear in GROUP or be defined in APPLY'
+			);
+		});
+
+		it("should not throw error if all columns are in GROUP or APPLY keys", () => {
+			const transformations = {
+				GROUP: ["dept", "id"],
+				APPLY: [{ maxGrade: { MAX: "grade" } }],
+			};
+			expect(() =>
+				TransformationsValidator.validateColumns(["dept", "id", "maxGrade"], transformations)
+			).to.not.throw();
+		});
+	});
+
+	describe("parseIndexHtml", () => {
+		it("should extract building data from valid index HTML", () => {
+			const sampleHtml = `
+      <html>
+        <body>
+          <table>
+            <tbody>
+              <tr>
+              <td class="views-field views-field-field-building-code">
+            BIOL          </td>
+                <td class="views-field views-field-title">
+                  <a href="./campus/discover/buildings-and-classrooms/BIOL.htm" title="Building Details and Map">
+                    Biological Sciences
+                  </a>
+                </td>
+                <td class="views-field views-field-field-building-address">
+                  Biological Sciences, 6270 University Blvd
+                </td>
+              </tr>
+              <tr>
+              <td class="views-field views-field-field-building-code">
+            LSC          </td>
+                <td class="views-field views-field-title">
+                  <a href="./campus/discover/buildings-and-classrooms/LSC.htm" title="Building Details and Map">
+                    Life Sciences Centre
+                  </a>
+                </td>
+                <td class="views-field views-field-field-building-address">
+                  Life Sciences Centre, 2350 Health Sciences Mall
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+			const expected: BuildingData[] = [
+				{
+					shortname: "BIOL",
+					fullname: "Biological Sciences",
+					address: "Biological Sciences, 6270 University Blvd",
+					href: "./campus/discover/buildings-and-classrooms/BIOL.htm",
+				},
+				{
+					shortname: "LSC",
+					fullname: "Life Sciences Centre",
+					address: "Life Sciences Centre, 2350 Health Sciences Mall",
+					href: "./campus/discover/buildings-and-classrooms/LSC.htm",
+				},
+			];
+
+			const result = parseIndexHtml(sampleHtml);
+			expect(result).to.deep.equal(expected);
+		});
+
+		it("should return an empty array if no valid building data is found", () => {
+			// HTML without any <td> with class "views-field views-field-title"
+			const invalidHtml = `
+      <html>
+        <body>
+          <table>
+            <tbody>
+              <tr>
+                <td class="not-the-right-class">No building here</td>
+              </tr>
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+			const result = parseIndexHtml(invalidHtml);
+			expect(result).to.be.an("array").that.is.empty;
+		});
+
+		it("should ignore entries missing href, shortname or address", () => {
+			const partialHtml = `
+      <html>
+        <body>
+          <table>
+            <tbody>
+              <tr>
+                <!-- Missing href -->
+                <td class="views-field views-field-title">
+                  <a title="Building Details and Map">BIOL</a>
+                </td>
+                <td class="views-field views-field-field-building-address">
+                  Biological Sciences, 6270 University Blvd
+                </td>
+              </tr>
+              <tr>
+                <!-- Missing address -->
+                <td class="views-field views-field-title">
+                  <a href="./campus/discover/buildings-and-classrooms/LSC.htm" title="Building Details and Map">
+                    LSC
+                  </a>
+                </td>
+                <td class="views-field views-field-field-building-address"></td>
+              </tr>
+              <tr>
+                <!-- Complete valid entry -->
+                <td class="views-field views-field-field-building-code">
+            MC          </td>
+                <td class="views-field views-field-title">
+                  <a href="./campus/discover/buildings-and-classrooms/MC.htm" title="Building Details and Map">
+                    Main Campusssss
+                  </a>
+                </td>
+                <td class="views-field views-field-field-building-address">
+                  Main Campus, 123 Campus Way
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+			const expected: BuildingData[] = [
+				{
+					shortname: "MC",
+					fullname: "Main Campusssss",
+					address: "Main Campus, 123 Campus Way",
+					href: "./campus/discover/buildings-and-classrooms/MC.htm",
+				},
+			];
+			const result = parseIndexHtml(partialHtml);
+			expect(result).to.deep.equal(expected);
+		});
+	});
+
+	// describe("InsightFacade.performQuery Integration Test (Rooms Query)", function () {
+	// 	const timo = 10000;
+	// 	this.timeout(timo);
+	// 	let insightFacade: InsightFacade;
+	// 	let roomsData: string;
+	//
+	// 	before(async () => {
+	// 		await clearDisk();
+	// 		insightFacade = new InsightFacade();
+	// 		// Dummy dataset for rooms.
+	// 		// Only records with more than 300 seats and furniture containing "Tables" will qualify.
+	// 		const dummyRooms = [
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 442, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 400, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" },
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 300, rooms_furniture: "Tables and Chairs", rooms_address: "Addr1" }, // Fails GT condition
+	// 			{ rooms_shortname: "OSBO", rooms_seats: 450, rooms_furniture: "Chairs", rooms_address: "Addr1" }, // Fails IS condition
+	// 			{ rooms_shortname: "HEBB", rooms_seats: 375, rooms_furniture: "Large Tables", rooms_address: "Addr2" },
+	// 			{ rooms_shortname: "LSC", rooms_seats: 350, rooms_furniture: "Tables", rooms_address: "Addr3" },
+	// 		];
+	//
+	// 		// We want only OSBO, HEBB, and LSC groups.
+	// 		const dummyDataset = {
+	// 			meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: dummyRooms.length },
+	// 			data: dummyRooms,
+	// 		};
+	//
+	// 		// Inject the dummy dataset into InsightFacade's datasets map.
+	// 		// (Using a type assertion to access the private field.)
+	// 		(insightFacade as any).datasets.set("rooms", dummyDataset);
+	// 		roomsData = await getContentFromArchives("campus.zip");
+	// 		await insightFacade.addDataset("rooms2", roomsData, InsightDatasetKind.Rooms);
+	// 		//await insightFacade.addDataset("rooms", roomsData, InsightDatasetKind.Rooms);
+	// 		//console.log(roomsData)
+	// 	});
+	//
+	// 	// it("should perform the rooms query and return correct results", async () => {
+	// 	// 	const query = {
+	// 	// 		WHERE: {
+	// 	// 			AND: [{ IS: { rooms_furniture: "*Tables*" } }, { GT: { rooms_seats: 300 } }],
+	// 	// 		},
+	// 	// 		OPTIONS: {
+	// 	// 			COLUMNS: ["rooms_shortname", "maxSeats"],
+	// 	// 			ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+	// 	// 		},
+	// 	// 		TRANSFORMATIONS: {
+	// 	// 			GROUP: ["rooms_shortname"],
+	// 	// 			APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+	// 	// 		},
+	// 	// 	};
+	// 	//
+	// 	// 	const results = await insightFacade.performQuery(query);
+	// 	// 	// We expect three groups: OSBO, HEBB, and LSC.
+	// 	// 	const three = 3;
+	// 	// 	expect(results).to.be.an("array").with.lengthOf(three);
+	// 	//
+	// 	// 	// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+	// 	// 	expect(results[0].rooms_shortname).to.equal("OSBO");
+	// 	// 	const num1 = 442;
+	// 	// 	expect(results[0].maxSeats).to.equal(num1);
+	// 	// 	expect(results[1].rooms_shortname).to.equal("HEBB");
+	// 	// 	const num2 = 375;
+	// 	// 	expect(results[1].maxSeats).to.equal(num2);
+	// 	// 	expect(results[2].rooms_shortname).to.equal("LSC");
+	// 	// 	const num3 = 350;
+	// 	// 	expect(results[2].maxSeats).to.equal(num3);
+	// 	// });
+	//
+	// 	it("using addedDataset: should perform the rooms query and return correct results", async () => {
+	// 		const isf = new InsightFacade();
+	//
+	// 		const query = {
+	// 			WHERE: {
+	// 				AND: [
+	// 					{
+	// 						IS: {
+	// 							rooms2_furniture: "*Tables*",
+	// 						},
+	// 					},
+	// 					{
+	// 						GT: {
+	// 							rooms2_seats: 300,
+	// 						},
+	// 					},
+	// 				],
+	// 			},
+	// 			OPTIONS: {
+	// 				COLUMNS: ["rooms2_shortname", "maxSeats"],
+	// 				ORDER: {
+	// 					dir: "DOWN",
+	// 					keys: ["maxSeats"],
+	// 				},
+	// 			},
+	// 			TRANSFORMATIONS: {
+	// 				GROUP: ["rooms2_shortname"],
+	// 				APPLY: [
+	// 					{
+	// 						maxSeats: {
+	// 							MAX: "rooms2_seats",
+	// 						},
+	// 					},
+	// 				],
+	// 			},
+	// 		};
+	//
+	// 		const results = await isf.performQuery(query);
+	// 		// We expect three groups: OSBO, HEBB, and LSC.
+	// 		const three = 3;
+	// 		expect(results).to.be.an("array").with.lengthOf(three);
+	//
+	// 		// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+	// 		expect(results[0].rooms2_shortname).to.equal("OSBO");
+	//
+	// 		const num1 = 442;
+	// 		expect(results[0].maxSeats).to.equal(num1);
+	// 		expect(results[1].rooms2_shortname).to.equal("HEBB");
+	// 		const num2 = 375;
+	// 		expect(results[1].maxSeats).to.equal(num2);
+	// 		expect(results[2].rooms2_shortname).to.equal("LSC");
+	// 		const num3 = 350;
+	// 		expect(results[2].maxSeats).to.equal(num3);
+	// 	});
+	// });
+
+	describe("TransformationsProcessor with Missing Values", () => {
+		const sampleData = [
+			{ sections_title: "310", sections_avg: 90 },
+			{ sections_title: "310", sections_avg: 80 },
+			{ sections_title: "310" }, // missing sections_avg, treat as 0
+			{ sections_title: "310", sections_avg: 85 },
+			{ sections_title: "210", sections_avg: 74 },
+			{ sections_title: "210", sections_avg: 78 },
+			{ sections_title: "210", sections_avg: 72 },
+			{ sections_title: "210", sections_avg: 85 },
+		];
+		const groupKeys = ["sections_title"];
+		const applyRules = [{ overallAvg: { AVG: "sections_avg" } }];
+
+		it("should handle missing fields by treating them as 0", () => {
+			const results = performTransformations(sampleData, groupKeys, applyRules);
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const num1 = 63.75;
+			const num2 = 77.25;
+			const tol = 0.01;
+
+			// For group "310": average = (90 + 80 + 0 + 85)/4 = 63.75
+			expect(group310.overallAvg).to.be.closeTo(num1, tol);
+			// For group "210": average = (74+78+72+85)/4 = 77.25
+			expect(group210.overallAvg).to.be.closeTo(num2, tol);
+		});
+	});
+
+	// it("should perform the rooms query and return correct results", async () => {
+	// 	const query = {
+	//
+	//  "WHERE": {},
+	//
+	//  "OPTIONS": {
+	//
+	//       "COLUMNS": ["sections_title", "overallAvg"]
+	//
+	//    },
+	//
+	//    "TRANSFORMATIONS": {
+	//
+	//       "GROUP": ["sections_title"],
+	//
+	//       "APPLY": [{
+	//
+	//           "overallAvg": {
+	//
+	//              "AVG": "sections_avg"
+	//
+	//           }
+	//
+	//       }]
+	//
+	//    }
+	//
+	// },
+	// 	};
+	//
+	// 	const results = await insightFacade.performQuery(query);
+	// 	// We expect three groups: OSBO, HEBB, and LSC.
+	// 	const three = 3;
+	// 	expect(results).to.be.an("array").with.lengthOf(three);
+	//
+	// 	// Sorted descending by maxSeats: OSBO (442), then HEBB (375), then LSC (350).
+	// 	expect(results[0].rooms_shortname).to.equal("OSBO");
+	// 	const num1 = 442;
+	// 	expect(results[0].maxSeats).to.equal(num1);
+	// 	expect(results[1].rooms_shortname).to.equal("HEBB");
+	// 	const num2 = 375;
+	// 	expect(results[1].maxSeats).to.equal(num2);
+	// 	expect(results[2].rooms_shortname).to.equal("LSC");
+	// 	const num3 = 350;
+	// 	expect(results[2].maxSeats).to.equal(num3);
+	// });
+
+	describe("OrderEvaluator", () => {
+		it("should sort records in descending order by maxSeats", () => {
+			const data = [
+				{ rooms_fullname: "A", maxSeats: 150 },
+				{ rooms_fullname: "B", maxSeats: 200 },
+			];
+			const sorted = OrderEvaluator.order(data, { dir: "DOWN", keys: ["maxSeats"] });
+			expect(sorted[0].rooms_fullname).to.equal("B");
+			expect(sorted[1].rooms_fullname).to.equal("A");
+		});
+	});
+
+	// describe("InsightFacade performQuery with rooms dataset", () => {
+	// 	let insightFacade: InsightFacade;
+	// 	const sampleRoomsData = [
+	// 		{ rooms_fullname: "A", rooms_seats: 150, rooms_shortname: "A", rooms_number: "101" },
+	// 		{ rooms_fullname: "A", rooms_seats: 100, rooms_shortname: "A", rooms_number: "102" },
+	// 		{ rooms_fullname: "B", rooms_seats: 200, rooms_shortname: "B", rooms_number: "201" },
+	// 	];
+	//
+	// 	before(async () => {
+	// 		insightFacade = new InsightFacade();
+	// 		// Wait for initialization if necessary
+	// 		// Directly inject a dummy "rooms" dataset into the in-memory map.
+	// 		// (This is for testing purposes only.)
+	// 		(insightFacade as any).datasets.set("rooms", {
+	// 			meta: { id: "rooms", kind: InsightDatasetKind.Rooms, numRows: sampleRoomsData.length },
+	// 			data: sampleRoomsData,
+	// 		});
+	// 	});
+	//
+	// 	it("should perform a valid query with TRANSFORMATIONS", async () => {
+	// 		const query = {
+	// 			WHERE: {},
+	// 			OPTIONS: {
+	// 				COLUMNS: ["rooms_fullname", "maxSeats"],
+	// 				ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+	// 			},
+	// 			TRANSFORMATIONS: {
+	// 				GROUP: ["rooms_fullname"],
+	// 				APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+	// 			},
+	// 		};
+	//
+	// 		const results = await insightFacade.performQuery(query);
+	// 		expect(results).to.be.an("array").with.lengthOf(2);
+	// 		// Since group "B" (max 200) should come before group "A" (max 150) when ordering DOWN
+	// 		expect(results[0].rooms_fullname).to.equal("B");
+	// 		const num1 = 200;
+	// 		expect(results[0].maxSeats).to.equal(num1);
+	// 		expect(results[1].rooms_fullname).to.equal("A");
+	// 		const num2 = 150;
+	// 		expect(results[1].maxSeats).to.equal(num2);
+	// 	});
+	// });
+
+	describe("TransformationsProcessor", () => {
+		const sampleData = [
+			{ rooms_fullname: "A", rooms_seats: 100, rooms_shortname: "A", rooms_number: "101" },
+			{ rooms_fullname: "A", rooms_seats: 150, rooms_shortname: "A", rooms_number: "102" },
+			{ rooms_fullname: "B", rooms_seats: 200, rooms_shortname: "B", rooms_number: "201" },
+			{ rooms_fullname: "B", rooms_seats: 250, rooms_shortname: "B", rooms_number: "202" },
+		];
+		const groupKeys = ["rooms_fullname"];
+		const applyRules = [
+			{ maxSeats: { MAX: "rooms_seats" } },
+			{ avgSeats: { AVG: "rooms_seats" } },
+			{ countRooms: { COUNT: "rooms_number" } },
+		];
+
+		it("should group data correctly and apply aggregations", () => {
+			const results = performTransformations(sampleData, groupKeys, applyRules);
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			const groupA = results.find((r) => r.rooms_fullname === "A");
+			const groupB = results.find((r) => r.rooms_fullname === "B");
+
+			expect(groupA).to.exist;
+			const num3 = 150;
+			expect(groupA.maxSeats).to.equal(num3);
+			const num4 = 125.0;
+			expect(groupA.avgSeats).to.equal(num4);
+			expect(groupA.countRooms).to.equal(2);
+			const num5 = 250;
+			const num6 = 225.0;
+			expect(groupB).to.exist;
+			expect(groupB.maxSeats).to.equal(num5);
+			expect(groupB.avgSeats).to.equal(num6);
+			expect(groupB.countRooms).to.equal(2);
+		});
+	});
+
+	describe("Combined Query Validator Tests", () => {
+		it("should validate a basic query without TRANSFORMATIONS", () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["rooms_fullname", "rooms_seats"],
+					ORDER: "rooms_seats",
+				},
+			};
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.not.throw();
+		});
+
+		it("should validate a query with valid TRANSFORMATIONS", () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["rooms_fullname", "maxSeats"],
+					ORDER: { dir: "DOWN", keys: ["maxSeats"] },
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["rooms_fullname"],
+					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+				},
+			};
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.not.throw();
+		});
+
+		it("should reject a query with TRANSFORMATIONS if a column is not in GROUP or APPLY", () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["rooms_fullname", "rooms_seats"], // rooms_seats is not in GROUP or APPLY
+					ORDER: "rooms_fullname",
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["rooms_fullname"],
+					APPLY: [{ maxSeats: { MAX: "rooms_seats" } }],
+				},
+			};
+			expect(() => QueryValidator.validateQuery(query, "rooms")).to.throw(InsightError, /rooms_seats/);
+		});
+	});
+
+	describe("BuildingParserUtils Tests", () => {
+		it("should extract room data from sample building HTML with valid classes", () => {
+			const sampleBuildingHtml = `
+      <html>
+        <body>
+          <h1>Biological Sciences</h1>
+          <p>6270 University Boulevard</p>
+          <table>
+            <tr>
+              <th>Room</th>
+              <th>Capacity</th>
+              <th>Furniture type</th>
+              <th>Room type</th>
+              <th>More info</th>
+            </tr>
+            <tr>
+              <td class="views-field views-field-field-room-number">1503</td>
+              <td class="views-field views-field-field-room-capacity">16</td>
+              <td class="views-field views-field-field-room-furniture">Classroom-Movable Tables & Chairs</td>
+              <td class="views-field views-field-field-room-type">Small Group</td>
+              <td class="views-field views-field-title"><a href="./BIOL1503.htm">More info</a></td>
+            </tr>
+            <tr>
+              <td class="views-field views-field-field-room-number">2000</td>
+              <td class="views-field views-field-field-room-capacity">228</td>
+              <td class="views-field views-field-field-room-furniture">Classroom-Fixed Tablets</td>
+              <td class="views-field views-field-field-room-type">Tiered Large Group</td>
+              <td class="views-field views-field-title"><a href="./BIOL2000.htm">More info</a></td>
+            </tr>
+            <tr>
+              <td class="views-field views-field-field-room-number">2200</td>
+              <td class="views-field views-field-field-room-capacity">76</td>
+              <td class="views-field views-field-field-room-furniture">Classroom-Fixed Tables/Movable Chairs</td>
+              <td class="views-field views-field-field-room-type">Tiered Large Group</td>
+              <td class="views-field views-field-title"><a href="./BIOL2200.htm">More info</a></td>
+            </tr>
+            <tr>
+              <td class="views-field views-field-field-room-number">2519</td>
+              <td class="views-field views-field-field-room-capacity">16</td>
+              <td class="views-field views-field-field-room-furniture">Classroom-Movable Tables & Chairs</td>
+              <td class="views-field views-field-field-room-type">Small Group</td>
+              <td class="views-field views-field-title"><a href="./BIOL2519.htm">More info</a></td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+			const buildingInfo = {
+				shortname: "BIOL",
+				address: "6270 University Boulevard",
+				lat: 49.26125,
+				lon: -123.24807,
+				fullname: "Biological Sciences",
+			};
+
+			const rooms = parseBuildingHtml(sampleBuildingHtml, buildingInfo);
+			const four = 4;
+			expect(rooms).to.be.an("array").with.lengthOf(four);
+
+			// Verify the first room's details
+			const room1 = rooms[0];
+			expect(room1.number).to.equal("1503");
+			const num = 16;
+			expect(room1.seats).to.equal(num);
+			expect(room1.furniture).to.equal("Classroom-Movable Tables & Chairs");
+			expect(room1.type).to.equal("Small Group");
+			expect(room1.href).to.equal("./BIOL1503.htm");
+			expect(room1.name).to.equal("BIOL_1503");
+			expect(room1.fullname).to.equal("Biological Sciences");
+		});
+	});
+
+	describe("GeoHelper Unit Tests", () => {
+		it("should return valid lat and lon for a known valid address", async () => {
+			const validAddress = "6245 Agronomy Road V6T 1Z4";
+			try {
+				const { lat, lon } = await fetchGeolocation(validAddress);
+				expect(lat).to.be.a("number");
+				expect(lon).to.be.a("number");
+			} catch (error) {
+				expect.fail(`Expected valid geolocation, but got error: ${(error as Error).message}`);
+			}
+		});
+
+		it("should reject for an invalid address", async () => {
+			const invalidAddress = "Invalid Address 123";
+			try {
+				await fetchGeolocation(invalidAddress);
+				expect.fail("Expected fetchGeolocation to reject for an invalid address");
+			} catch (error) {
+				expect(error).to.be.instanceOf(Error);
+				expect((error as Error).message).to.be.a("string");
+			}
+		});
+	});
+
+	// QueryKeyValidator - Rooms
+	describe("QueryKeyValidator - Rooms", () => {
+		it("should accept valid rooms SFields", () => {
+			expect(() => validateSField("fullname", "rooms")).to.not.throw();
+			expect(() => validateSField("shortname", "rooms")).to.not.throw();
+			expect(() => validateSField("number", "rooms")).to.not.throw();
+			expect(() => validateSField("name", "rooms")).to.not.throw();
+			expect(() => validateSField("address", "rooms")).to.not.throw();
+			expect(() => validateSField("type", "rooms")).to.not.throw();
+			expect(() => validateSField("furniture", "rooms")).to.not.throw();
+			expect(() => validateSField("href", "rooms")).to.not.throw();
+		});
+
+		it("should reject invalid rooms SFields", () => {
+			expect(() => validateSField("dept", "rooms")).to.throw();
+			expect(() => validateSField("id", "rooms")).to.throw();
+		});
+
+		it("should accept valid rooms MFields", () => {
+			expect(() => validateMField("lat", "rooms")).to.not.throw();
+			expect(() => validateMField("lon", "rooms")).to.not.throw();
+			expect(() => validateMField("seats", "rooms")).to.not.throw();
+		});
+
+		it("should reject invalid rooms MFields", () => {
+			expect(() => validateMField("avg", "rooms")).to.throw();
+		});
+	});
+
+	// // Tests for a Rooms dataset
+	// describe("QueryKeyValidator - Rooms 2", () => {
+	// 	it("should accept a valid string key for Rooms", () => {
+	// 		// Pass "rooms" explicitly as the dataset kind.
+	// 		expect(() => validateSKey("rooms_fullname", "rooms")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a string key with a wrong prefix for Rooms", () => {
+	// 		expect(() => validateSKey("sections_fullname", "rooms")).to.throw(InsightError);
+	// 		expect(() => validateSKey("fullname", "rooms")).to.throw(InsightError);
+	// 	});
+	//
+	// 	it("should accept a valid mkey for Rooms", () => {
+	// 		expect(() => validateMKey("rooms_seats", "rooms")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a mkey with a wrong prefix for Rooms", () => {
+	// 		expect(() => validateMKey("sections_avg", "rooms")).to.throw(InsightError);
+	// 		expect(() => validateMKey("avg", "rooms")).to.throw(InsightError);
+	// 	});
+	// });
+	//
+	// // Tests for a Sections dataset
+	// describe("QueryKeyValidator - Sections", () => {
+	// 	it("should accept a valid string key for Sections", () => {
+	// 		expect(() => validateSKey("sections_dept", "sections")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a string key with a wrong prefix for Sections", () => {
+	// 		expect(() => validateSKey("rooms_dept", "sections")).to.throw(InsightError);
+	// 		expect(() => validateSKey("dept", "sections")).to.throw(InsightError);
+	// 	});
+	//
+	// 	it("should accept a valid mkey for Sections", () => {
+	// 		expect(() => validateMKey("sections_avg", "sections")).to.not.throw(InsightError);
+	// 	});
+	//
+	// 	it("should reject a mkey with a wrong prefix for Sections", () => {
+	// 		expect(() => validateMKey("rooms_avg", "sections")).to.throw(InsightError);
+	// 		expect(() => validateMKey("avg", "sections")).to.throw(InsightError);
+	// 	});
+	// });
 
 	describe("AddDataset", function () {
 		beforeEach(async function () {
@@ -70,6 +1055,11 @@ describe("InsightFacade", function () {
 			await expect(facade.addDataset("courseID", sections, InsightDatasetKind.Sections)).to.eventually.include(
 				"courseID"
 			);
+		});
+
+		it("should accept valid rooms", async function () {
+			const roomsData = await getContentFromArchives("campus.zip");
+			await expect(facade.addDataset("roomsID", roomsData, InsightDatasetKind.Rooms)).to.eventually.include("roomsID");
 		});
 
 		it("should reject with  an empty dataset id 2", async function () {
@@ -417,8 +1407,6 @@ describe("InsightFacade", function () {
 					expect.fail(`performQuery threw unexpected error: ${err}`);
 				}
 
-				// to determine what to put here :)
-				// if you catch an error and it is expected
 				if (expected === "ResultTooLargeError") {
 					expect(err).to.be.instanceof(ResultTooLargeError);
 				} else if (expected === "InsightError") {
@@ -434,24 +1422,9 @@ describe("InsightFacade", function () {
 				expect.fail(`performQuery resolved when it should have rejected with ${expected}`);
 			}
 
-			// to determine what to put here :)
-			// no error, no expectation, return result
-			// change this?
 			expect(result).to.have.deep.members(expected);
 			return; // optional?
 		}
-
-		// before(async function () {
-		// 	try {
-		// 		sections = await getContentFromArchives("singleCourse.zip");
-		// 		console.log("Dataset loaded successfully");
-		// 		await clearDisk();
-		// 		console.log("Disk cleared successfully");
-		// 	} catch (err) {
-		// 		console.error("Error in before hook:", err);
-		// 		throw err;  // Re-throw to fail the test suite if necessary
-		// 	}
-		// });
 
 		before(async function () {
 			// after(async function () {
@@ -485,6 +1458,28 @@ describe("InsightFacade", function () {
 		// Examples demonstrating how to test performQuery using the JSON Test Queries.
 		// The relative path to the query file must be given in square brackets.
 		// WRITE it TESTS HERE
+		it("[sectionsValid/multipleGroupKeys.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/validCountSections.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/validMultAppKeysSections.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/validTransEmptySectionsResult.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/testValid.json] multipleGroupKeys", checkQuery);
+		it("[sectionsValid/weirdValid.json] multipleGroupKeys", checkQuery);
+
+		it("[sectionsInvalid/invalidKeyId.json] invalidKeyId", checkQuery);
+		it("[sectionsInvalid/invalidKeyColumns.json] invalidKeyColumns", checkQuery);
+		it("[sectionsInvalid/transIdCheck.json] transIdCheck", checkQuery);
+		it("[sectionsInvalid/invalidKeyCol.json] invalidKeyCol", checkQuery);
+		it("[sectionsInvalid/invalidKeyGroup.json] invalidKeyGroup", checkQuery);
+		it("[sectionsInvalid/twoDataLT.json] twoDataLT", checkQuery);
+		it("[sectionsInvalid/twoDatasets.json] twoDatasets", checkQuery);
+		it("[sectionsInvalid/twoDatasetsAND.json] twoDatasetsAND", checkQuery);
+		it("[sectionsInvalid/twoDatasetsNested.json] twoDatasetsNested", checkQuery);
+		it("[sectionsInvalid/twoDatasetsOR.json] twoDatasetsOR", checkQuery);
+		it("[sectionsInvalid/twoKeyApply.json] twoKeyApply", checkQuery);
+		it("[sectionsInvalid/underscoreAppKey.json] underscoreAppKey", checkQuery);
+		it("[sectionsInvalid/badDatasetTrans.json] badDatasetTrans", checkQuery);
+		it("[sectionsInvalid/badDatasetTrans2.json] badDatasetTrans2", checkQuery);
+
 		it("[valid/simple.json] SELECT dept, avg WHERE avg > 97", checkQuery);
 		it("[valid/both_ends_wc.json] wc text wc", checkQuery);
 		it("[valid/complex.json] complex", checkQuery);
@@ -535,6 +1530,65 @@ describe("InsightFacade", function () {
 		it("[invalid/noColumns.json] No columns", checkQuery);
 		it("[invalid/optionNoColumns.json] Option no columns", checkQuery);
 		it("[invalid/eqNotObject.json] EQ not object", checkQuery);
+	});
+
+	describe("InsightFacade performQuery - Grouping by Department", function () {
+		// this.timeout(5000); // Increase timeout in case of slow operations
+
+		let insightFacade: InsightFacade;
+		const sampleSectionsData = [
+			{ dept: "CPSC", fail: 50, audit: 3, id: "110" },
+			{ dept: "CPSC", fail: 40, audit: 2, id: "210" },
+			{ dept: "MATH", fail: 45, audit: 2.5, id: "101" },
+			{ dept: "MATH", fail: 35, audit: 3, id: "201" },
+			{ dept: "BIOL", fail: 40, audit: 1.5, id: "150" },
+			{ dept: "HIST", fail: 20, audit: 1, id: "220" },
+			{ dept: "HIST", fail: 10, audit: 2, id: "230" },
+		];
+
+		before(async () => {
+			insightFacade = new InsightFacade();
+			(insightFacade as any).datasets.set("sections", {
+				meta: { id: "sections", kind: InsightDatasetKind.Sections, numRows: sampleSectionsData.length },
+				data: sampleSectionsData,
+			});
+		});
+
+		it("should group by sections_dept and calculate MAX fail, AVG audit, COUNT courses", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["sections_dept", "highestFail", "averageAudit", "uniqueCourses"],
+					ORDER: { dir: "DOWN", keys: ["highestFail"] },
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["sections_dept"],
+					APPLY: [
+						{ highestFail: { MAX: "sections_fail" } },
+						{ averageAudit: { AVG: "sections_audit" } },
+						{ uniqueCourses: { COUNT: "sections_id" } },
+					],
+				},
+			};
+
+			const results = await insightFacade.performQuery(query);
+			const four = 4;
+			expect(results).to.be.an("array").with.lengthOf(four);
+
+			const expectedResults = [
+				{ sections_dept: "CPSC", highestFail: 50, averageAudit: 2.5, uniqueCourses: 2 },
+				{ sections_dept: "MATH", highestFail: 45, averageAudit: 2.75, uniqueCourses: 2 },
+				{ sections_dept: "BIOL", highestFail: 40, averageAudit: 1.5, uniqueCourses: 1 },
+				{ sections_dept: "HIST", highestFail: 20, averageAudit: 1.5, uniqueCourses: 2 },
+			];
+
+			expectedResults.forEach((expected, index) => {
+				expect(results[index].sections_dept).to.equal(expected.sections_dept);
+				expect(results[index].highestFail).to.equal(expected.highestFail);
+				expect(results[index].uniqueCourses).to.equal(expected.uniqueCourses);
+				expect(results[index].averageAudit).to.equal(expected.averageAudit);
+			});
+		});
 	});
 
 	describe("Data Persistence", function () {
@@ -659,6 +1713,333 @@ describe("InsightFacade", function () {
 
 			// Expect an InsightError to be thrown.
 			await expect(facade.performQuery(invalidQuery)).to.be.rejectedWith(InsightError);
+		});
+	});
+
+	describe("TransformationsProcessor with Valid Data", () => {
+		const sampleData = [
+			{ sections_uuid: "1", sections_instructor: "Jean", sections_avg: 90, sections_title: "310" },
+			{ sections_uuid: "2", sections_instructor: "Jean", sections_avg: 80, sections_title: "310" },
+			{ sections_uuid: "3", sections_instructor: "Casey", sections_avg: 95, sections_title: "310" },
+			{ sections_uuid: "4", sections_instructor: "Casey", sections_avg: 85, sections_title: "310" },
+			{ sections_uuid: "5", sections_instructor: "Kelly", sections_avg: 74, sections_title: "210" },
+			{ sections_uuid: "6", sections_instructor: "Kelly", sections_avg: 78, sections_title: "210" },
+			{ sections_uuid: "7", sections_instructor: "Kelly", sections_avg: 72, sections_title: "210" },
+			{ sections_uuid: "8", sections_instructor: "Eli", sections_avg: 85, sections_title: "210" },
+		];
+		const groupKeys = ["sections_title"];
+		const applyRules = [{ overallAvg: { AVG: "sections_avg" } }];
+
+		it("should correctly compute the average per group", () => {
+			const results = performTransformations(sampleData, groupKeys, applyRules);
+			expect(results).to.be.an("array").with.lengthOf(2);
+			// console.log(results);
+
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expectedAvg310 = 87.5; // (90 + 80 + 95 + 85)/4
+			const expectedAvg210 = 77.25; // (74 + 78 + 72 + 85)/4
+			const tolerance = 0.01;
+
+			expect(group310.overallAvg).to.be.closeTo(expectedAvg310, tolerance);
+			expect(group210.overallAvg).to.be.closeTo(expectedAvg210, tolerance);
+		});
+	});
+
+	describe("performQuery with GROUP and APPLY", () => {
+		let insightFacade: InsightFacade;
+		const sampleSectionsData = [
+			{ uuid: "1", instructor: "Jean", avg: 90, title: "310" },
+			{ uuid: "2", instructor: "Jean", avg: 80, title: "310" },
+			{ uuid: "3", instructor: "Casey", avg: 95, title: "310" },
+			{ uuid: "4", instructor: "Casey", avg: 85, title: "310" },
+			{ uuid: "5", instructor: "Kelly", avg: 74, title: "210" },
+			{ uuid: "6", instructor: "Kelly", avg: 78, title: "210" },
+			{ uuid: "7", instructor: "Kelly", avg: 72, title: "210" },
+			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" },
+		];
+
+		before(async () => {
+			insightFacade = new InsightFacade();
+			(insightFacade as any).datasets.set("sections", {
+				meta: { id: "sections", kind: InsightDatasetKind.Sections, numRows: sampleSectionsData.length },
+				data: sampleSectionsData,
+			});
+			sections = await getContentFromArchives("oneCourse.zip");
+			await insightFacade.addDataset("singleID", sections, InsightDatasetKind.Sections);
+			// insightFacade.addDataset("idk", sampleSectionsData,)
+		});
+
+		it("for singleCourse: should correctly group and find max", async () => {
+			const insightFacade2 = new InsightFacade();
+			const query = {
+				WHERE: {
+					GT: {
+						singleID_avg: 75,
+					},
+				},
+				OPTIONS: {
+					COLUMNS: ["singleID_uuid", "maxAvg"],
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["singleID_uuid"],
+					APPLY: [
+						{
+							maxAvg: {
+								MAX: "singleID_avg",
+							},
+						},
+					],
+				},
+			};
+
+			const results = await insightFacade2.performQuery(query);
+
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.singleID_uuid === "30095");
+			const group210 = results.find((r) => r.singleID_uuid === "30096");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expected310 = 76.23;
+			const expected210 = 76.23;
+
+			if (group310) {
+				expect(group310.maxAvg).to.equal(expected310);
+			}
+			if (group210) {
+				expect(group210.maxAvg).to.equal(expected210);
+			}
+		});
+
+		it("should correctly group and find max", async () => {
+			// let  insightFacade2: InsightFacade;
+			// insightFacade2 = new InsightFacade();
+			const query = {
+				WHERE: {},
+				OPTIONS: { COLUMNS: ["sections_title", "maxAvg"] },
+				TRANSFORMATIONS: {
+					GROUP: ["sections_title"],
+					APPLY: [{ maxAvg: { MAX: "sections_avg" } }],
+				},
+			};
+
+			const results = await insightFacade.performQuery(query);
+
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expected310 = 95;
+			const expected210 = 85;
+
+			if (group310) {
+				expect(group310.maxAvg).to.equal(expected310);
+			}
+			if (group210) {
+				expect(group210.maxAvg).to.equal(expected210);
+			}
+		});
+
+		it("should correctly group and find min", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: { COLUMNS: ["sections_title", "minAvg"] },
+				TRANSFORMATIONS: {
+					GROUP: ["sections_title"],
+					APPLY: [{ minAvg: { MIN: "sections_avg" } }],
+				},
+			};
+
+			const results = await insightFacade.performQuery(query);
+
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expected310 = 80;
+			const expected210 = 72;
+
+			if (group310) {
+				expect(group310.minAvg).to.equal(expected310);
+			}
+			if (group210) {
+				expect(group210.minAvg).to.equal(expected210);
+			}
+		});
+
+		it("should correctly group and find sum", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: { COLUMNS: ["sections_title", "sumAvg"] },
+				TRANSFORMATIONS: {
+					GROUP: ["sections_title"],
+					APPLY: [{ sumAvg: { SUM: "sections_avg" } }],
+				},
+			};
+
+			const results = await insightFacade.performQuery(query);
+
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expected310 = 350;
+			const expected210 = 309;
+
+			if (group310) {
+				expect(group310.sumAvg).to.equal(expected310);
+			}
+			if (group210) {
+				expect(group210.sumAvg).to.equal(expected210);
+			}
+		});
+
+		it("should correctly group and find count", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: { COLUMNS: ["sections_title", "uniqueInstructors"] },
+				TRANSFORMATIONS: {
+					GROUP: ["sections_title"],
+					APPLY: [{ uniqueInstructors: { COUNT: "sections_instructor" } }],
+				},
+			};
+
+			const results = await insightFacade.performQuery(query);
+
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expected310 = 2;
+			const expected210 = 2;
+
+			if (group310) {
+				expect(group310.uniqueInstructors).to.equal(expected310);
+			}
+			if (group210) {
+				expect(group210.uniqueInstructors).to.equal(expected210);
+			}
+		});
+	});
+
+	describe("InsightFacade performQuery with sections dataset", () => {
+		let insightFacade: InsightFacade;
+		const sampleSectionsData = [
+			{ uuid: "1", instructor: "Jean", avg: 90, title: "310" },
+			{ uuid: "2", instructor: "Jean", avg: 80, title: "310" },
+			{ uuid: "3", instructor: "Casey", avg: 95, title: "310" },
+			{ uuid: "4", instructor: "Casey", avg: 85, title: "310" },
+			{ uuid: "5", instructor: "Kelly", avg: 74, title: "210" },
+			{ uuid: "6", instructor: "Kelly", avg: 78, title: "210" },
+			{ uuid: "7", instructor: "Kelly", avg: 72, title: "210" },
+			{ uuid: "8", instructor: "Eli", avg: 85, title: "210" },
+		];
+
+		before(async () => {
+			insightFacade = new InsightFacade();
+			(insightFacade as any).datasets.set("sections", {
+				meta: { id: "sections", kind: InsightDatasetKind.Sections, numRows: sampleSectionsData.length },
+				data: sampleSectionsData,
+			});
+			// insightFacade.addDataset("idk", sampleSectionsData,)
+		});
+
+		it("should correctly group and calculate averages", async () => {
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: ["sections_title", "overallAvg"],
+					ORDER: { dir: "DOWN", keys: ["overallAvg"] },
+				},
+				TRANSFORMATIONS: {
+					GROUP: ["sections_title"],
+					APPLY: [{ overallAvg: { AVG: "sections_avg" } }],
+				},
+			};
+
+			const results = await insightFacade.performQuery(query);
+
+			expect(results).to.be.an("array").with.lengthOf(2);
+
+			// this.timeout(10000);
+			const group310 = results.find((r) => r.sections_title === "310");
+			const group210 = results.find((r) => r.sections_title === "210");
+
+			expect(group310).to.exist;
+			expect(group210).to.exist;
+
+			const expectedAvg310 = 87.5; // (90 + 80 + 95 + 85) / 4
+			const expectedAvg210 = 77.25; // (74 + 78 + 72 + 85) / 4
+			const tolerance = 0.01;
+
+			if (group310) {
+				expect(group310.overallAvg).to.be.closeTo(expectedAvg310, tolerance);
+			}
+			if (group210) {
+				expect(group210.overallAvg).to.be.closeTo(expectedAvg210, tolerance);
+			}
+		});
+	});
+
+	describe("Data Persistence and Transformation", () => {
+		let facade2: InsightFacade;
+		const persistenceDatasetId = "persistTest";
+		let initialContent: string;
+		before(async () => {
+			await clearDisk();
+			initialContent = await getContentFromArchives("singleCourse.zip");
+			facade2 = new InsightFacade();
+			await facade2.addDataset(persistenceDatasetId, initialContent, InsightDatasetKind.Sections);
+		});
+
+		it("should correctly load and transform persisted dataset", async () => {
+			const newFacade = new InsightFacade();
+			// Wait a bit for newFacade to initialize and load persisted data.
+			await new Promise((resolve) => setTimeout(resolve, 100));
+			const datasets = await newFacade.listDatasets();
+			const dsMeta = datasets.find((d) => d.id === persistenceDatasetId);
+			expect(dsMeta).to.not.be.undefined;
+			// Perform a query to ensure transformation occurs.
+			const query = {
+				WHERE: {},
+				OPTIONS: {
+					COLUMNS: [`${persistenceDatasetId}_dept`],
+				},
+			};
+			const queryResult = await newFacade.performQuery(query);
+			// Check that transformation produced valid output.
+			expect(queryResult).to.be.an("array").that.is.not.empty;
+			queryResult.forEach((record: any) => {
+				expect(record[`${persistenceDatasetId}_dept`]).to.be.a("string");
+			});
 		});
 	});
 });

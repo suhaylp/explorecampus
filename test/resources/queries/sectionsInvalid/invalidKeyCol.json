@@ -1,0 +1,31 @@
+{
+	"title": "invalidKeyCol",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_avg": 80
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_dept",
+				"hi"
+			],
+			"ORDER": "sections_avg"
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"sections_dept"
+			],
+			"APPLY": [
+				{
+					"ji": {
+						"MAX": "sections_avg"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

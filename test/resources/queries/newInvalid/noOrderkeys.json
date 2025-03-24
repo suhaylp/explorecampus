@@ -1,0 +1,17 @@
+{
+	"title": "noOrderkeys",
+	"input": {
+		"WHERE": {},
+		"OPTIONS": {
+			"COLUMNS": [
+				"rooms_fullname",
+				"rooms_shortname"
+			],
+			"ORDER": {
+				"dir": "UP"
+			}
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

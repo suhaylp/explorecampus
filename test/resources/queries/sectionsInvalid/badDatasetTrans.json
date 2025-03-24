@@ -1,0 +1,31 @@
+{
+	"title": "badDatasetTrans",
+	"input": {
+		"WHERE": {
+			"GT": {
+				"sections_avg": 80
+			}
+		},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_dept",
+				"sections_avg"
+			],
+			"ORDER": "sections_avg"
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"section_dept"
+			],
+			"APPLY": [
+				{
+					"sections_avg": {
+						"MAX": "section_avg"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

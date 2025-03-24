@@ -1,0 +1,39 @@
+{
+	"title": "invalidKeyColumns",
+	"input": {
+		"WHERE": {},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_dept",
+				"highestFail",
+				"averageAudit",
+				"uniqueCourses"
+			],
+			"ORDER": {
+				"dir": "DOWN",
+				"keys": [
+					"highestFail"
+				]
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"sections_dept"
+			],
+			"APPLY": [
+				{
+					"highestFail": {
+						"MAX": "sections_fail"
+					}
+				},
+				{
+					"averageAudit": {
+						"AVG": "sections_audit"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}

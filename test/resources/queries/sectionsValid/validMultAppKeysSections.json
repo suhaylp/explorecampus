@@ -1,0 +1,1179 @@
+{
+	"title": "validMultAppKeysSections",
+	"input": {
+		"WHERE": {},
+		"OPTIONS": {
+			"COLUMNS": [
+				"sections_dept",
+				"highestFail",
+				"averageAudit",
+				"uniqueCourses"
+			],
+			"ORDER": {
+				"dir": "DOWN",
+				"keys": [
+					"highestFail"
+				]
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"sections_dept"
+			],
+			"APPLY": [
+				{
+					"highestFail": {
+						"MAX": "sections_fail"
+					}
+				},
+				{
+					"averageAudit": {
+						"AVG": "sections_audit"
+					}
+				},
+				{
+					"uniqueCourses": {
+						"COUNT": "sections_id"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": false,
+	"expected": [
+		{
+			"sections_dept": "chem",
+			"highestFail": 287,
+			"averageAudit": 0.13,
+			"uniqueCourses": 63
+		},
+		{
+			"sections_dept": "biol",
+			"highestFail": 230,
+			"averageAudit": 0.16,
+			"uniqueCourses": 91
+		},
+		{
+			"sections_dept": "math",
+			"highestFail": 222,
+			"averageAudit": 0.07,
+			"uniqueCourses": 94
+		},
+		{
+			"sections_dept": "econ",
+			"highestFail": 221,
+			"averageAudit": 0.26,
+			"uniqueCourses": 93
+		},
+		{
+			"sections_dept": "cpsc",
+			"highestFail": 190,
+			"averageAudit": 0.21,
+			"uniqueCourses": 53
+		},
+		{
+			"sections_dept": "phys",
+			"highestFail": 184,
+			"averageAudit": 0.09,
+			"uniqueCourses": 68
+		},
+		{
+			"sections_dept": "psyc",
+			"highestFail": 175,
+			"averageAudit": 0.12,
+			"uniqueCourses": 52
+		},
+		{
+			"sections_dept": "apsc",
+			"highestFail": 141,
+			"averageAudit": 0.05,
+			"uniqueCourses": 18
+		},
+		{
+			"sections_dept": "comm",
+			"highestFail": 102,
+			"averageAudit": 0.09,
+			"uniqueCourses": 99
+		},
+		{
+			"sections_dept": "busi",
+			"highestFail": 88,
+			"averageAudit": 0,
+			"uniqueCourses": 40
+		},
+		{
+			"sections_dept": "phil",
+			"highestFail": 87,
+			"averageAudit": 0.24,
+			"uniqueCourses": 17
+		},
+		{
+			"sections_dept": "wrds",
+			"highestFail": 87,
+			"averageAudit": 0,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "eosc",
+			"highestFail": 85,
+			"averageAudit": 0.11,
+			"uniqueCourses": 89
+		},
+		{
+			"sections_dept": "engl",
+			"highestFail": 79,
+			"averageAudit": 0.03,
+			"uniqueCourses": 32
+		},
+		{
+			"sections_dept": "lled",
+			"highestFail": 58,
+			"averageAudit": 0.02,
+			"uniqueCourses": 27
+		},
+		{
+			"sections_dept": "geob",
+			"highestFail": 56,
+			"averageAudit": 0.14,
+			"uniqueCourses": 23
+		},
+		{
+			"sections_dept": "elec",
+			"highestFail": 54,
+			"averageAudit": 0.02,
+			"uniqueCourses": 54
+		},
+		{
+			"sections_dept": "clst",
+			"highestFail": 53,
+			"averageAudit": 0.18,
+			"uniqueCourses": 25
+		},
+		{
+			"sections_dept": "span",
+			"highestFail": 51,
+			"averageAudit": 0.35,
+			"uniqueCourses": 21
+		},
+		{
+			"sections_dept": "bioc",
+			"highestFail": 50,
+			"averageAudit": 0.15,
+			"uniqueCourses": 19
+		},
+		{
+			"sections_dept": "japn",
+			"highestFail": 50,
+			"averageAudit": 0.39,
+			"uniqueCourses": 24
+		},
+		{
+			"sections_dept": "micb",
+			"highestFail": 47,
+			"averageAudit": 0.29,
+			"uniqueCourses": 27
+		},
+		{
+			"sections_dept": "poli",
+			"highestFail": 47,
+			"averageAudit": 0.07,
+			"uniqueCourses": 22
+		},
+		{
+			"sections_dept": "fmst",
+			"highestFail": 44,
+			"averageAudit": 0.08,
+			"uniqueCourses": 7
+		},
+		{
+			"sections_dept": "chbe",
+			"highestFail": 41,
+			"averageAudit": 0.18,
+			"uniqueCourses": 55
+		},
+		{
+			"sections_dept": "geog",
+			"highestFail": 38,
+			"averageAudit": 0.14,
+			"uniqueCourses": 47
+		},
+		{
+			"sections_dept": "stat",
+			"highestFail": 37,
+			"averageAudit": 0.34,
+			"uniqueCourses": 21
+		},
+		{
+			"sections_dept": "mech",
+			"highestFail": 36,
+			"averageAudit": 0.12,
+			"uniqueCourses": 85
+		},
+		{
+			"sections_dept": "educ",
+			"highestFail": 34,
+			"averageAudit": 0.25,
+			"uniqueCourses": 11
+		},
+		{
+			"sections_dept": "apbi",
+			"highestFail": 33,
+			"averageAudit": 0.06,
+			"uniqueCourses": 40
+		},
+		{
+			"sections_dept": "ling",
+			"highestFail": 33,
+			"averageAudit": 0.17,
+			"uniqueCourses": 30
+		},
+		{
+			"sections_dept": "caps",
+			"highestFail": 29,
+			"averageAudit": 0,
+			"uniqueCourses": 12
+		},
+		{
+			"sections_dept": "fren",
+			"highestFail": 29,
+			"averageAudit": 0.24,
+			"uniqueCourses": 28
+		},
+		{
+			"sections_dept": "civl",
+			"highestFail": 28,
+			"averageAudit": 0.22,
+			"uniqueCourses": 84
+		},
+		{
+			"sections_dept": "hist",
+			"highestFail": 26,
+			"averageAudit": 0.27,
+			"uniqueCourses": 69
+		},
+		{
+			"sections_dept": "scie",
+			"highestFail": 25,
+			"averageAudit": 0,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "cons",
+			"highestFail": 24,
+			"averageAudit": 0.34,
+			"uniqueCourses": 15
+		},
+		{
+			"sections_dept": "crwr",
+			"highestFail": 24,
+			"averageAudit": 0.23,
+			"uniqueCourses": 12
+		},
+		{
+			"sections_dept": "frst",
+			"highestFail": 23,
+			"averageAudit": 0.3,
+			"uniqueCourses": 72
+		},
+		{
+			"sections_dept": "fist",
+			"highestFail": 22,
+			"averageAudit": 0.26,
+			"uniqueCourses": 12
+		},
+		{
+			"sections_dept": "asia",
+			"highestFail": 20,
+			"averageAudit": 0.29,
+			"uniqueCourses": 57
+		},
+		{
+			"sections_dept": "fnh",
+			"highestFail": 20,
+			"averageAudit": 0.05,
+			"uniqueCourses": 38
+		},
+		{
+			"sections_dept": "kin",
+			"highestFail": 20,
+			"averageAudit": 0.05,
+			"uniqueCourses": 53
+		},
+		{
+			"sections_dept": "soci",
+			"highestFail": 20,
+			"averageAudit": 0.27,
+			"uniqueCourses": 19
+		},
+		{
+			"sections_dept": "visa",
+			"highestFail": 20,
+			"averageAudit": 0.07,
+			"uniqueCourses": 28
+		},
+		{
+			"sections_dept": "latn",
+			"highestFail": 19,
+			"averageAudit": 0.55,
+			"uniqueCourses": 6
+		},
+		{
+			"sections_dept": "ital",
+			"highestFail": 18,
+			"averageAudit": 0.38,
+			"uniqueCourses": 15
+		},
+		{
+			"sections_dept": "musc",
+			"highestFail": 18,
+			"averageAudit": 0.21,
+			"uniqueCourses": 52
+		},
+		{
+			"sections_dept": "astr",
+			"highestFail": 17,
+			"averageAudit": 0.13,
+			"uniqueCourses": 16
+		},
+		{
+			"sections_dept": "germ",
+			"highestFail": 17,
+			"averageAudit": 0.5,
+			"uniqueCourses": 23
+		},
+		{
+			"sections_dept": "lfs",
+			"highestFail": 15,
+			"averageAudit": 0.03,
+			"uniqueCourses": 9
+		},
+		{
+			"sections_dept": "mtrl",
+			"highestFail": 12,
+			"averageAudit": 0.09,
+			"uniqueCourses": 48
+		},
+		{
+			"sections_dept": "thtr",
+			"highestFail": 12,
+			"averageAudit": 0.04,
+			"uniqueCourses": 43
+		},
+		{
+			"sections_dept": "vant",
+			"highestFail": 11,
+			"averageAudit": 0,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "cogs",
+			"highestFail": 10,
+			"averageAudit": 0.09,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "cpen",
+			"highestFail": 10,
+			"averageAudit": 0.07,
+			"uniqueCourses": 18
+		},
+		{
+			"sections_dept": "arcl",
+			"highestFail": 9,
+			"averageAudit": 0.19,
+			"uniqueCourses": 13
+		},
+		{
+			"sections_dept": "arth",
+			"highestFail": 9,
+			"averageAudit": 0.45,
+			"uniqueCourses": 32
+		},
+		{
+			"sections_dept": "audi",
+			"highestFail": 9,
+			"averageAudit": 0.04,
+			"uniqueCourses": 34
+		},
+		{
+			"sections_dept": "astu",
+			"highestFail": 8,
+			"averageAudit": 0,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "chin",
+			"highestFail": 8,
+			"averageAudit": 0.29,
+			"uniqueCourses": 43
+		},
+		{
+			"sections_dept": "fipr",
+			"highestFail": 8,
+			"averageAudit": 0.03,
+			"uniqueCourses": 14
+		},
+		{
+			"sections_dept": "grsj",
+			"highestFail": 8,
+			"averageAudit": 0.11,
+			"uniqueCourses": 23
+		},
+		{
+			"sections_dept": "korn",
+			"highestFail": 8,
+			"averageAudit": 0.45,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "anth",
+			"highestFail": 7,
+			"averageAudit": 0.25,
+			"uniqueCourses": 26
+		},
+		{
+			"sections_dept": "cnps",
+			"highestFail": 7,
+			"averageAudit": 0.07,
+			"uniqueCourses": 19
+		},
+		{
+			"sections_dept": "fnis",
+			"highestFail": 7,
+			"averageAudit": 0,
+			"uniqueCourses": 8
+		},
+		{
+			"sections_dept": "mdvl",
+			"highestFail": 7,
+			"averageAudit": 0.1,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "nest",
+			"highestFail": 7,
+			"averageAudit": 0.27,
+			"uniqueCourses": 7
+		},
+		{
+			"sections_dept": "rmst",
+			"highestFail": 7,
+			"averageAudit": 0,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "fopr",
+			"highestFail": 6,
+			"averageAudit": 0,
+			"uniqueCourses": 7
+		},
+		{
+			"sections_dept": "mine",
+			"highestFail": 6,
+			"averageAudit": 0.31,
+			"uniqueCourses": 41
+		},
+		{
+			"sections_dept": "relg",
+			"highestFail": 6,
+			"averageAudit": 0.31,
+			"uniqueCourses": 15
+		},
+		{
+			"sections_dept": "wood",
+			"highestFail": 6,
+			"averageAudit": 0.05,
+			"uniqueCourses": 30
+		},
+		{
+			"sections_dept": "adhe",
+			"highestFail": 5,
+			"averageAudit": 0.01,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "last",
+			"highestFail": 5,
+			"averageAudit": 0.38,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "phar",
+			"highestFail": 5,
+			"averageAudit": 0.01,
+			"uniqueCourses": 51
+		},
+		{
+			"sections_dept": "scan",
+			"highestFail": 5,
+			"averageAudit": 0.05,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "babs",
+			"highestFail": 4,
+			"averageAudit": 0,
+			"uniqueCourses": 3
+		},
+		{
+			"sections_dept": "cnrs",
+			"highestFail": 4,
+			"averageAudit": 0.32,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "coec",
+			"highestFail": 4,
+			"averageAudit": 0,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "itst",
+			"highestFail": 4,
+			"averageAudit": 0.24,
+			"uniqueCourses": 9
+		},
+		{
+			"sections_dept": "larc",
+			"highestFail": 4,
+			"averageAudit": 0.07,
+			"uniqueCourses": 19
+		},
+		{
+			"sections_dept": "pcth",
+			"highestFail": 4,
+			"averageAudit": 0.02,
+			"uniqueCourses": 12
+		},
+		{
+			"sections_dept": "sowk",
+			"highestFail": 4,
+			"averageAudit": 0.05,
+			"uniqueCourses": 33
+		},
+		{
+			"sections_dept": "arch",
+			"highestFail": 3,
+			"averageAudit": 0.01,
+			"uniqueCourses": 29
+		},
+		{
+			"sections_dept": "ba",
+			"highestFail": 3,
+			"averageAudit": 0,
+			"uniqueCourses": 10
+		},
+		{
+			"sections_dept": "cens",
+			"highestFail": 3,
+			"averageAudit": 0.16,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "dhyg",
+			"highestFail": 3,
+			"averageAudit": 0,
+			"uniqueCourses": 18
+		},
+		{
+			"sections_dept": "eced",
+			"highestFail": 3,
+			"averageAudit": 0,
+			"uniqueCourses": 10
+		},
+		{
+			"sections_dept": "ends",
+			"highestFail": 3,
+			"averageAudit": 0.01,
+			"uniqueCourses": 9
+		},
+		{
+			"sections_dept": "enph",
+			"highestFail": 3,
+			"averageAudit": 0,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "envr",
+			"highestFail": 3,
+			"averageAudit": 0.02,
+			"uniqueCourses": 7
+		},
+		{
+			"sections_dept": "epse",
+			"highestFail": 3,
+			"averageAudit": 0.16,
+			"uniqueCourses": 58
+		},
+		{
+			"sections_dept": "etec",
+			"highestFail": 3,
+			"averageAudit": 0,
+			"uniqueCourses": 12
+		},
+		{
+			"sections_dept": "hebr",
+			"highestFail": 3,
+			"averageAudit": 0,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "igen",
+			"highestFail": 3,
+			"averageAudit": 0,
+			"uniqueCourses": 8
+		},
+		{
+			"sections_dept": "isci",
+			"highestFail": 3,
+			"averageAudit": 0,
+			"uniqueCourses": 6
+		},
+		{
+			"sections_dept": "laso",
+			"highestFail": 3,
+			"averageAudit": 0,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "law",
+			"highestFail": 3,
+			"averageAudit": 0.16,
+			"uniqueCourses": 83
+		},
+		{
+			"sections_dept": "port",
+			"highestFail": 3,
+			"averageAudit": 0.6,
+			"uniqueCourses": 8
+		},
+		{
+			"sections_dept": "russ",
+			"highestFail": 3,
+			"averageAudit": 0.46,
+			"uniqueCourses": 9
+		},
+		{
+			"sections_dept": "appp",
+			"highestFail": 2,
+			"averageAudit": 0,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "arbc",
+			"highestFail": 2,
+			"averageAudit": 0.38,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "asic",
+			"highestFail": 2,
+			"averageAudit": 0,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "atsc",
+			"highestFail": 2,
+			"averageAudit": 0.23,
+			"uniqueCourses": 8
+		},
+		{
+			"sections_dept": "baac",
+			"highestFail": 2,
+			"averageAudit": 0.03,
+			"uniqueCourses": 6
+		},
+		{
+			"sections_dept": "bafi",
+			"highestFail": 2,
+			"averageAudit": 0.08,
+			"uniqueCourses": 11
+		},
+		{
+			"sections_dept": "eece",
+			"highestFail": 2,
+			"averageAudit": 0.32,
+			"uniqueCourses": 35
+		},
+		{
+			"sections_dept": "fre",
+			"highestFail": 2,
+			"averageAudit": 0.11,
+			"uniqueCourses": 18
+		},
+		{
+			"sections_dept": "hinu",
+			"highestFail": 2,
+			"averageAudit": 0.63,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "medg",
+			"highestFail": 2,
+			"averageAudit": 0.19,
+			"uniqueCourses": 13
+		},
+		{
+			"sections_dept": "pers",
+			"highestFail": 2,
+			"averageAudit": 0.24,
+			"uniqueCourses": 6
+		},
+		{
+			"sections_dept": "plan",
+			"highestFail": 2,
+			"averageAudit": 0.12,
+			"uniqueCourses": 16
+		},
+		{
+			"sections_dept": "punj",
+			"highestFail": 2,
+			"averageAudit": 0.09,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "rgla",
+			"highestFail": 2,
+			"averageAudit": 0.13,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "rhsc",
+			"highestFail": 2,
+			"averageAudit": 2.79,
+			"uniqueCourses": 10
+		},
+		{
+			"sections_dept": "sans",
+			"highestFail": 2,
+			"averageAudit": 0.4,
+			"uniqueCourses": 3
+		},
+		{
+			"sections_dept": "spha",
+			"highestFail": 2,
+			"averageAudit": 0,
+			"uniqueCourses": 20
+		},
+		{
+			"sections_dept": "spph",
+			"highestFail": 2,
+			"averageAudit": 0.35,
+			"uniqueCourses": 51
+		},
+		{
+			"sections_dept": "anat",
+			"highestFail": 1,
+			"averageAudit": 0,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "arst",
+			"highestFail": 1,
+			"averageAudit": 0.03,
+			"uniqueCourses": 19
+		},
+		{
+			"sections_dept": "baen",
+			"highestFail": 1,
+			"averageAudit": 0.05,
+			"uniqueCourses": 6
+		},
+		{
+			"sections_dept": "bahr",
+			"highestFail": 1,
+			"averageAudit": 0.06,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "bama",
+			"highestFail": 1,
+			"averageAudit": 0.03,
+			"uniqueCourses": 9
+		},
+		{
+			"sections_dept": "bams",
+			"highestFail": 1,
+			"averageAudit": 0.02,
+			"uniqueCourses": 12
+		},
+		{
+			"sections_dept": "basc",
+			"highestFail": 1,
+			"averageAudit": 0,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "bmeg",
+			"highestFail": 1,
+			"averageAudit": 0.02,
+			"uniqueCourses": 9
+		},
+		{
+			"sections_dept": "ccst",
+			"highestFail": 1,
+			"averageAudit": 0.24,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "cics",
+			"highestFail": 1,
+			"averageAudit": 0,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "clch",
+			"highestFail": 1,
+			"averageAudit": 0.29,
+			"uniqueCourses": 3
+		},
+		{
+			"sections_dept": "cohr",
+			"highestFail": 1,
+			"averageAudit": 0.1,
+			"uniqueCourses": 12
+		},
+		{
+			"sections_dept": "dent",
+			"highestFail": 1,
+			"averageAudit": 0,
+			"uniqueCourses": 46
+		},
+		{
+			"sections_dept": "edcp",
+			"highestFail": 1,
+			"averageAudit": 0.13,
+			"uniqueCourses": 26
+		},
+		{
+			"sections_dept": "edst",
+			"highestFail": 1,
+			"averageAudit": 0.24,
+			"uniqueCourses": 25
+		},
+		{
+			"sections_dept": "fhis",
+			"highestFail": 1,
+			"averageAudit": 0,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "fnel",
+			"highestFail": 1,
+			"averageAudit": 0.5,
+			"uniqueCourses": 9
+		},
+		{
+			"sections_dept": "food",
+			"highestFail": 1,
+			"averageAudit": 0.12,
+			"uniqueCourses": 11
+		},
+		{
+			"sections_dept": "grek",
+			"highestFail": 1,
+			"averageAudit": 0.32,
+			"uniqueCourses": 6
+		},
+		{
+			"sections_dept": "jrnl",
+			"highestFail": 1,
+			"averageAudit": 0.06,
+			"uniqueCourses": 3
+		},
+		{
+			"sections_dept": "libe",
+			"highestFail": 1,
+			"averageAudit": 0,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "libr",
+			"highestFail": 1,
+			"averageAudit": 0.22,
+			"uniqueCourses": 34
+		},
+		{
+			"sections_dept": "medi",
+			"highestFail": 1,
+			"averageAudit": 0.38,
+			"uniqueCourses": 8
+		},
+		{
+			"sections_dept": "nrsc",
+			"highestFail": 1,
+			"averageAudit": 0.42,
+			"uniqueCourses": 3
+		},
+		{
+			"sections_dept": "nurs",
+			"highestFail": 1,
+			"averageAudit": 0.01,
+			"uniqueCourses": 46
+		},
+		{
+			"sections_dept": "obst",
+			"highestFail": 1,
+			"averageAudit": 0.06,
+			"uniqueCourses": 7
+		},
+		{
+			"sections_dept": "onco",
+			"highestFail": 1,
+			"averageAudit": 0.44,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "path",
+			"highestFail": 1,
+			"averageAudit": 0.05,
+			"uniqueCourses": 27
+		},
+		{
+			"sections_dept": "phrm",
+			"highestFail": 1,
+			"averageAudit": 0,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "surg",
+			"highestFail": 1,
+			"averageAudit": 0.05,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "swed",
+			"highestFail": 1,
+			"averageAudit": 0.15,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "ufor",
+			"highestFail": 1,
+			"averageAudit": 0.33,
+			"uniqueCourses": 3
+		},
+		{
+			"sections_dept": "urst",
+			"highestFail": 1,
+			"averageAudit": 0.09,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "aanb",
+			"highestFail": 0,
+			"averageAudit": 4.5,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "bait",
+			"highestFail": 0,
+			"averageAudit": 0.02,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "bala",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "bapa",
+			"highestFail": 0,
+			"averageAudit": 0.08,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "basm",
+			"highestFail": 0,
+			"averageAudit": 0.01,
+			"uniqueCourses": 6
+		},
+		{
+			"sections_dept": "baul",
+			"highestFail": 0,
+			"averageAudit": 0.11,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "biof",
+			"highestFail": 0,
+			"averageAudit": 0.22,
+			"uniqueCourses": 3
+		},
+		{
+			"sections_dept": "bota",
+			"highestFail": 0,
+			"averageAudit": 0.13,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "ceen",
+			"highestFail": 0,
+			"averageAudit": 0.06,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "cell",
+			"highestFail": 0,
+			"averageAudit": 0.08,
+			"uniqueCourses": 12
+		},
+		{
+			"sections_dept": "chil",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "cnto",
+			"highestFail": 0,
+			"averageAudit": 5.8,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "dani",
+			"highestFail": 0,
+			"averageAudit": 0.46,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "fish",
+			"highestFail": 0,
+			"averageAudit": 0.5,
+			"uniqueCourses": 5
+		},
+		{
+			"sections_dept": "gbpr",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "gpp",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 10
+		},
+		{
+			"sections_dept": "gsat",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 3
+		},
+		{
+			"sections_dept": "hgse",
+			"highestFail": 0,
+			"averageAudit": 0.03,
+			"uniqueCourses": 10
+		},
+		{
+			"sections_dept": "hunu",
+			"highestFail": 0,
+			"averageAudit": 0.08,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "iar",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "info",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "iwme",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "lais",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "midw",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 14
+		},
+		{
+			"sections_dept": "mrne",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "name",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 7
+		},
+		{
+			"sections_dept": "phth",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 16
+		},
+		{
+			"sections_dept": "pols",
+			"highestFail": 0,
+			"averageAudit": 0.36,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "rmes",
+			"highestFail": 0,
+			"averageAudit": 0.29,
+			"uniqueCourses": 13
+		},
+		{
+			"sections_dept": "rsot",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 11
+		},
+		{
+			"sections_dept": "soil",
+			"highestFail": 0,
+			"averageAudit": 0.2,
+			"uniqueCourses": 9
+		},
+		{
+			"sections_dept": "sts",
+			"highestFail": 0,
+			"averageAudit": 0.83,
+			"uniqueCourses": 3
+		},
+		{
+			"sections_dept": "test",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 1
+		},
+		{
+			"sections_dept": "udes",
+			"highestFail": 0,
+			"averageAudit": 0.13,
+			"uniqueCourses": 4
+		},
+		{
+			"sections_dept": "ursy",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 2
+		},
+		{
+			"sections_dept": "zool",
+			"highestFail": 0,
+			"averageAudit": 0,
+			"uniqueCourses": 2
+		}
+	]
+}

@@ -4,12 +4,11 @@ import { OptionsValidator } from "./validationhelpers/QueryOptionsValidator";
 import { TransformationsValidator } from "./validationhelpers/QueryTransformationsValidator";
 
 export class QueryValidator {
-
-
-	public static validateQuery(query: any): void {
+	public static validateQuery(query: any, datasetKind: "rooms" | "sections"): void {
 		if (typeof query !== "object" || query === null || Array.isArray(query)) {
 			throw new InsightError("Query must be a non-null object");
 		}
+
 		const keys = Object.keys(query);
 		const two = 2;
 		const three = 3;
@@ -18,27 +17,83 @@ export class QueryValidator {
 		}
 
 		OptionsValidator.validateOptions(query.OPTIONS);
-		WhereValidator.validateWhere(query.WHERE);
+		WhereValidator.validateWhere(query.WHERE, datasetKind);
 
-		if ("TRANSFORMATIONS" in query) {
-			TransformationsValidator.validateTransformations(query.TRANSFORMATIONS);
-			TransformationsValidator.validateColumns(query.OPTIONS.COLUMNS, query.TRANSFORMATIONS);
-		}
-
+		// Extract dataset IDs from different sections
 		const datasetIdFromOptions = QueryValidator.extractDatasetIdFromColumns(query.OPTIONS.COLUMNS);
 		const datasetIdsFromWhere = QueryValidator.extractDatasetIdsFromWhere(query.WHERE);
 
-		if (
-			datasetIdsFromWhere.size > 0 &&
-			(datasetIdsFromWhere.size !== 1 || !datasetIdsFromWhere.has(datasetIdFromOptions))
-		) {
-			throw new InsightError("Query must reference exactly one dataset in WHERE and OPTIONS");
+		let datasetIdFromTransformations: string | null = null;
+		let datasetIdsFromApply = new Set<string>();
+
+		if ("TRANSFORMATIONS" in query) {
+			TransformationsValidator.validateTransformations(query.TRANSFORMATIONS, datasetKind);
+			TransformationsValidator.validateColumns(query.OPTIONS.COLUMNS, query.TRANSFORMATIONS);
+
+			datasetIdFromTransformations = QueryValidator.extractDatasetIdFromTransformations(query.TRANSFORMATIONS);
+			datasetIdsFromApply = QueryValidator.extractDatasetIdsFromApply(query.TRANSFORMATIONS.APPLY);
+		}
+
+		// Ensure exactly one dataset is referenced across WHERE, OPTIONS, and TRANSFORMATIONS
+		const datasetIdSet = new Set<string>();
+
+		if (datasetIdsFromWhere.size > 0) {
+			datasetIdSet.add([...datasetIdsFromWhere][0]); // Extract single dataset
+		}
+
+		datasetIdSet.add(datasetIdFromOptions);
+
+		if (datasetIdFromTransformations !== null) {
+			datasetIdSet.add(datasetIdFromTransformations);
+		}
+
+		datasetIdsFromApply.forEach((id) => datasetIdSet.add(id));
+
+		if (datasetIdSet.size !== 1) {
+			throw new InsightError("Query must reference exactly one dataset across WHERE, OPTIONS, and TRANSFORMATIONS");
 		}
 	}
 
+	private static extractDatasetIdsFromApply(applyRules: any[]): Set<string> {
+		const datasetIds = new Set<string>();
 
+		for (const rule of applyRules) {
+			const applyKey = Object.keys(rule)[0]; // e.g., "maxAvg"
+			const applyObj = rule[applyKey]; // e.g., { "MAX": "sections_avg" }
 
-private static extractDatasetIdFromColumns(columns: string[]): string {
+			const fieldKey = Object.values(applyObj)[0]; // e.g., "sections_avg"
+			if (typeof fieldKey !== "string" || !fieldKey.includes("_")) {
+				throw new InsightError(`Invalid APPLY key format: ${fieldKey}`);
+			}
+
+			datasetIds.add(fieldKey.split("_")[0]);
+		}
+
+		return datasetIds;
+	}
+
+	private static extractDatasetIdFromTransformations(transformations: any): string {
+		if (!transformations || typeof transformations !== "object" || !Array.isArray(transformations.GROUP)) {
+			throw new InsightError("TRANSFORMATIONS must have a GROUP array.");
+		}
+
+		// Extract dataset IDs from GROUP keys
+		const datasetIds = new Set<string>();
+		for (const key of transformations.GROUP) {
+			if (typeof key !== "string" || !key.includes("_")) {
+				throw new InsightError(`Invalid GROUP key format: ${key}`);
+			}
+			datasetIds.add(key.split("_")[0]);
+		}
+
+		if (datasetIds.size !== 1) {
+			throw new InsightError("TRANSFORMATIONS must reference exactly one dataset.");
+		}
+
+		return <string>datasetIds.values().next().value; // Return the single dataset ID
+	}
+
+	private static extractDatasetIdFromColumns(columns: string[]): string {
 		const firstColumn = columns[0];
 		const parts = firstColumn.split("_");
 		if (parts.length !== 2) {

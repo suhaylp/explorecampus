@@ -1,0 +1,40 @@
+{
+	"title": "invalidKeyId",
+	"input": {
+		"WHERE": {},
+		"OPTIONS": {
+			"COLUMNS": [
+				"rooms_shortname",
+				"sections_dept",
+				"totalSeats",
+				"averagePassRate"
+			],
+			"ORDER": {
+				"dir": "UP",
+				"keys": [
+					"totalSeats"
+				]
+			}
+		},
+		"TRANSFORMATIONS": {
+			"GROUP": [
+				"rooms_shortname",
+				"sections_dept"
+			],
+			"APPLY": [
+				{
+					"totalSeats": {
+						"SUM": "rooms_seats"
+					}
+				},
+				{
+					"averagePassRate": {
+						"AVG": "sections_pass"
+					}
+				}
+			]
+		}
+	},
+	"errorExpected": true,
+	"expected": "InsightError"
+}
